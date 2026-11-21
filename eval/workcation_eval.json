@@ -1,0 +1,103 @@
+{
+  "eval_set_id": "workcation_concierge_eval_set",
+  "name": "Workcation & Smart Travel Concierge Evaluation Suite",
+  "description": "Evaluation scenarios for Step 3 covering auto-booking under 150,000 JPY, grade policy violation blocking, and over-budget manager approval escalation.",
+  "eval_cases": [
+    {
+      "eval_id": "case_sapporo_auto_book_under_budget",
+      "conversation": [
+        {
+          "invocation_id": "inv_sapporo_1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "札幌で2泊のワーケーションをエコノミークラス・スタンダードルームで予約してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "札幌（2泊、エコノミークラス、スタンダードルーム、合計 59,000 JPY、Wi-Fi 120 Mbps）のワーケーション予約が完了しました。"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "step2_workflow_agent",
+        "user_id": "eval_user_member",
+        "state": {
+          "user_role": "member",
+          "approved_limit_jpy": 150000
+        }
+      }
+    },
+    {
+      "eval_id": "case_okinawa_suite_blocked_by_guardrail",
+      "conversation": [
+        {
+          "invocation_id": "inv_okinawa_suite_1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "沖縄で2泊、スイートルームでのワーケーションを予約してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "社内出張規定のガードレール（GRADE_POLICY_VIOLATION）により、一般社員によるスイートルームの予約はブロックされました。スタンダードルームへの変更をご検討ください。"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "step1_basic_agent",
+        "user_id": "eval_user_member",
+        "state": {
+          "user_role": "member",
+          "approved_limit_jpy": 150000
+        }
+      }
+    },
+    {
+      "eval_id": "case_hawaii_over_budget_requires_manager_approval",
+      "conversation": [
+        {
+          "invocation_id": "inv_hawaii_1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "ハワイで4泊のワーケーションをエコノミークラス・スタンダードルームで手配してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "ハワイ4泊の旅程は合計 242,000 JPY となり、自己承認上限（150,000 JPY）を超過するため上長承認（manager_approval）が必要です。"
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "step2_workflow_agent",
+        "user_id": "eval_user_member",
+        "state": {
+          "user_role": "member",
+          "approved_limit_jpy": 150000
+        }
+      }
+    }
+  ]
+}
