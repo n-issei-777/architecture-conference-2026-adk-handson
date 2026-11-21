@@ -696,8 +696,8 @@
       <div class="sidebar-footer">
         <strong>Environment Standards</strong>
         Python: <code>python3.13</code> + <code>uv</code><br>
-        Auth: Vertex AI ADC<br>
-        Models: <code>gemini-3.8-flash</code> / <code>gemini-3.5-flash-lite</code>
+        Auth: Vertex AI ADC (<code>global</code>)<br>
+        Models: <code>gemini-4-neon</code> / <code>gemini-4-hydrogen</code>
       </div>
     </aside>
 
@@ -740,7 +740,7 @@
               <strong>対象ファイル:</strong> <code>step1_basic_agent/agent.py</code>, <code>src/workcation_concierge/guardrails.py</code>
             </p>
             <ul style="font-size:13.5px; margin-bottom:0;">
-              <li><code>gemini-3.8-flash</code> を用いた単一 <code>Agent</code></li>
+              <li>高度な推論モデル <code>gemini-4-neon</code> を用いた単一 <code>Agent</code></li>
               <li><code>SkillToolset</code>（旅費規定 <code>skills/travel-policy/SKILL.md</code> のオンデマンド読込）</li>
               <li><code>McpToolset</code>（<code>src/workcation_concierge/mcp_server.py</code> による予約作成・監査ツール）</li>
               <li><code>before_tool_callback</code>（<code>enforce_booking_guardrail</code>）による <strong>150,000円上限＆スイートルーム禁止の100%決定論的ブロック</strong></li>
@@ -752,12 +752,12 @@
               <strong>対象ファイル:</strong> <code>step2_workflow_agent/agent.py</code>, <code>src/workcation_concierge/schemas.py</code>
             </p>
             <ul style="font-size:13.5px; margin-bottom:0;">
-              <li>Node 1: <code>intake_agent</code>（<code>mode="task"</code>, <code>output_schema=TripRequest</code>）</li>
-              <li>Node 2: 並列ファンアウト — <code>fetch_workcation_metrics</code>（0-LLM Python関数）+ <code>search_agent</code>（<code>gemini-3.5-flash-lite</code>）</li>
+              <li>Node 1: <code>intake_agent</code>（<code>gemini-4-neon</code>, <code>mode="task"</code>, <code>output_schema=TripRequest</code>）</li>
+              <li>Node 2: 並列ファンアウト — <code>fetch_workcation_metrics</code>（0-LLM Python関数）+ <code>search_agent</code>（<code>gemini-4-hydrogen</code>）</li>
               <li>Node 3: <code>JoinNode(name="join_research")</code> による決定論的バリア同期</li>
               <li>Node 4: <code>calculate_and_route</code>（0-LLM Pythonによる厳密な予算計算と <code>if total_jpy &gt; 150000:</code> ルーティング）</li>
               <li>Node 5: <code>manager_approval_gate</code>（<code>RequestInput</code> による HITL 一時停止・承認再開と <code>Session.state["approved_limit_jpy"]</code> 更新）</li>
-              <li>Node 6: <code>booking_agent</code>（<code>gemini-3.8-flash</code> + <code>enforce_booking_guardrail</code>）</li>
+              <li>Node 6: <code>booking_agent</code>（<code>gemini-4-hydrogen</code> + <code>enforce_booking_guardrail</code>）</li>
             </ul>
           </div>
         </div>
@@ -790,7 +790,7 @@
 
             <rect x="230" y="62" width="215" height="72" rx="8" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
             <text x="337" y="85" font-family="sans-serif" font-size="12.5" font-weight="bold" fill="#1557b0" text-anchor="middle">step1_basic_agent (Agent)</text>
-            <text x="337" y="103" font-family="sans-serif" font-size="11" fill="#202124" text-anchor="middle">Model: gemini-3.8-flash</text>
+            <text x="337" y="103" font-family="sans-serif" font-size="11" fill="#202124" text-anchor="middle">Model: gemini-4-neon</text>
             <text x="337" y="120" font-family="sans-serif" font-size="10.5" fill="#5f6368" text-anchor="middle">SkillToolset + McpToolset</text>
 
             <line x1="445" y1="98" x2="495" y2="98" stroke="#1a73e8" stroke-width="2" marker-end="url(#arrow-blue)"/>
@@ -831,7 +831,7 @@
             <rect x="200" y="315" width="165" height="64" rx="8" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
             <text x="282" y="337" font-family="sans-serif" font-size="11" font-weight="bold" fill="#1557b0" text-anchor="middle">2b. search_agent</text>
             <text x="282" y="353" font-family="sans-serif" font-size="10" fill="#202124" text-anchor="middle">mode="single_turn"</text>
-            <text x="282" y="368" font-family="sans-serif" font-size="9.5" fill="#5f6368" text-anchor="middle">gemini-3.5-flash-lite</text>
+            <text x="282" y="368" font-family="sans-serif" font-size="9.5" fill="#5f6368" text-anchor="middle">gemini-4-hydrogen</text>
 
             <!-- Fan-in lines to JoinNode -->
             <line x1="365" y1="252" x2="395" y2="288" stroke="#1a73e8" stroke-width="2" marker-end="url(#arrow-blue)"/>
@@ -869,7 +869,7 @@
             <!-- Node 6: booking_agent -->
             <rect x="710" y="330" width="160" height="82" rx="8" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
             <text x="790" y="352" font-family="sans-serif" font-size="11.5" font-weight="bold" fill="#1557b0" text-anchor="middle">6. booking_agent</text>
-            <text x="790" y="369" font-family="sans-serif" font-size="10" fill="#202124" text-anchor="middle">gemini-3.8-flash</text>
+            <text x="790" y="369" font-family="sans-serif" font-size="10" fill="#202124" text-anchor="middle">gemini-4-hydrogen</text>
             <text x="790" y="385" font-family="sans-serif" font-size="9.5" fill="#d93025" text-anchor="middle">+ enforce_booking_guardrail</text>
             <text x="790" y="400" font-family="sans-serif" font-size="9.5" fill="#1e8e3e" text-anchor="middle">-&gt; MCP reserve_package</text>
           </svg>
@@ -974,9 +974,9 @@
           <pre><code><span class="tok-cmt"># 現在の認証アカウントを確認</span>
 gcloud auth list
 
-<span class="tok-cmt"># Qwiklabs のプロジェクト ID を確認・設定</span>
+<span class="tok-cmt"># Qwiklabs のプロジェクト ID を確認・設定 (Gemini 4 は global エンドポイントを使用)</span>
 export GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
-export GOOGLE_CLOUD_LOCATION=us-central1
+export GOOGLE_CLOUD_LOCATION=global
 export GOOGLE_GENAI_USE_VERTEXAI=TRUE
 
 echo "Active Project: ${GOOGLE_CLOUD_PROJECT}"
@@ -1058,7 +1058,7 @@ uv run pytest</code></pre>
             <tbody>
               <tr>
                 <td><code>Agent</code> (<code>LlmAgent</code>)</td>
-                <td>モデル（<code>gemini-3.8-flash</code>）、システム指示、ツール群、コールバックを束ねる最小の推論単位。</td>
+                <td>モデル（<code>gemini-4-neon</code> / <code>gemini-4-hydrogen</code>）、システム指示、ツール群、コールバックを束ねる最小の推論単位。</td>
                 <td><code>step1_basic_agent/agent.py</code> の <code>root_agent</code></td>
               </tr>
               <tr>
@@ -1268,14 +1268,14 @@ FORBIDDEN_ROOM_TYPES = {<span class="tok-str">"suite"</span>, <span class="tok-s
           </div>
           <pre><code>step1_basic_agent/agent.py の単一エージェント設計をベースに、step2_workflow_agent/agent.py に ADK 2.0 の 6ノード構成ハイブリッド Workflow を実装してください。
 
-1. intake_agent: mode="task", model="gemini-3.8-flash", output_schema=TripRequest でユーザー要求を構造化抽出
+1. intake_agent: mode="task", model="gemini-4-neon", output_schema=TripRequest でユーザー要求を構造化抽出
 2. 並列ファンアウト:
    - fetch_workcation_metrics: 0-LLM Python関数ノードとして Wi-Fi 速度とコワーキング情報を取得
-   - search_agent: mode="single_turn", model="gemini-3.5-flash-lite" でフライト・ホテル料金を取得
+   - search_agent: mode="single_turn", model="gemini-4-hydrogen" でフライト・ホテル料金を取得
 3. JoinNode(name="join_research"): 並列ブランチの完了をバリア同期
 4. calculate_and_route: 0-LLM Python関数ノードで総額 (total_jpy) を決定論的に算出し、if total_jpy > 150000: でルーティングを分岐
 5. manager_approval_gate: 150,000 JPY 超過時のみ RequestInput でワークフローを一時停止 (HITL) し、承認されたら Session.state["approved_limit_jpy"] を total_jpy に更新
-6. booking_agent: model="gemini-3.8-flash" + before_tool_callback=enforce_booking_guardrail で最終予約を実行</code></pre>
+6. booking_agent: model="gemini-4-hydrogen" + before_tool_callback=enforce_booking_guardrail で最終予約を実行</code></pre>
         </div>
 
         <h2>3.3 ADK 2.0 6-Node Hybrid Workflow のコード構造を確認する</h2>
@@ -1289,10 +1289,10 @@ FORBIDDEN_ROOM_TYPES = {<span class="tok-str">"suite"</span>, <span class="tok-s
             <button class="copy-btn" type="button" onclick="copyCode(this)">Copy</button>
           </div>
           <pre><code><span class="tok-cmt"># Step 2: ADK 2.0 6ノード・ハイブリッド Workflow</span>
-<span class="tok-cmt"># 1. 要求構造化ノード (mode="task", output_schema=TripRequest)</span>
+<span class="tok-cmt"># 1. 要求構造化ノード (mode="task", output_schema=TripRequest, gemini-4-neon)</span>
 intake_agent = Agent(
     name=<span class="tok-str">"intake_agent"</span>,
-    model=<span class="tok-str">"gemini-3.8-flash"</span>,
+    model=<span class="tok-str">"gemini-4-neon"</span>,
     mode=<span class="tok-str">"task"</span>,
     output_schema=TripRequest,
     output_key=<span class="tok-str">"trip_request"</span>,
@@ -1303,10 +1303,10 @@ intake_agent = Agent(
 <span class="tok-kw">def</span> <span class="tok-fn">fetch_workcation_metrics</span>(trip_request: TripRequest) -&gt; dict[str, Any]:
     <span class="tok-kw">return</span> get_workcation_metrics(destination=trip_request.destination)
 
-<span class="tok-cmt"># 2b. 軽量モデルによる単発検索ノード (gemini-3.5-flash-lite)</span>
+<span class="tok-cmt"># 2b. 高速モデルによる単発検索ノード (gemini-4-hydrogen)</span>
 search_agent = Agent(
     name=<span class="tok-str">"search_agent"</span>,
-    model=<span class="tok-str">"gemini-3.5-flash-lite"</span>,
+    model=<span class="tok-str">"gemini-4-hydrogen"</span>,
     mode=<span class="tok-str">"single_turn"</span>,
     tools=[lookup_flight_and_hotel],
     output_key=<span class="tok-str">"pricing_quote"</span>,
@@ -1331,10 +1331,10 @@ manager_approval_gate = RequestInput(
     prompt=<span class="tok-str">"Total cost exceeds 150,000 JPY. Submit manager approval JSON to continue."</span>,
 )
 
-<span class="tok-cmt"># 6. 予約実行エージェント (enforce_booking_guardrail で保護)</span>
+<span class="tok-cmt"># 6. 予約実行エージェント (gemini-4-hydrogen + enforce_booking_guardrail で保護)</span>
 booking_agent = Agent(
     name=<span class="tok-str">"booking_agent"</span>,
-    model=<span class="tok-str">"gemini-3.8-flash"</span>,
+    model=<span class="tok-str">"gemini-4-hydrogen"</span>,
     tools=[reserve_package],
     before_tool_callback=enforce_booking_guardrail,
 )</code></pre>
@@ -1454,7 +1454,8 @@ uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workca
           <pre><code>uv run agents-cli deploy \
   --deployment-target agent_runtime \
   --project "${GOOGLE_CLOUD_PROJECT}" \
-  --region "${GOOGLE_CLOUD_LOCATION}" \
+  --region us-central1 \
+  --env-vars "GOOGLE_CLOUD_LOCATION=global" \
   --service-name "workcation-concierge-workflow"</code></pre>
         </div>
 
@@ -1599,7 +1600,7 @@ uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workca
                   すべてのステップでメインの巨大 LLM が「次にどのツールを呼ぶか」を毎回思考するため、ステップ数に比例してトークンコストとレイテンシが膨らみ、金額計算や条件分岐も確率的に揺らぐ。
                 </td>
                 <td>
-                  ADK 2.0 <code>Workflow</code> により、0-LLM Python 関数ノード（<code>fetch_workcation_metrics</code>, <code>calculate_and_route</code>）、<code>JoinNode</code> による並列合流、および <code>gemini-3.5-flash-lite</code> と <code>gemini-3.8-flash</code> の適材適所な使い分けをコードで固定できる。
+                  ADK 2.0 <code>Workflow</code> により、0-LLM Python 関数ノード（<code>fetch_workcation_metrics</code>, <code>calculate_and_route</code>）、<code>JoinNode</code> による並列合流、および <code>gemini-4-hydrogen</code> と <code>gemini-4-neon</code> の適材適所な使い分けをコードで固定できる。
                 </td>
               </tr>
               <tr>
@@ -1638,7 +1639,7 @@ uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workca
           <div class="feature-card">
             <h4><code>ModelConsultTool</code> (Dynamic Expert Model Consultation)</h4>
             <p style="font-size:13.8px; margin-bottom:0;">
-              普段は高速・低コストな <code>gemini-3.5-flash-lite</code> で応答しつつ、高度な推論が必要な局面だけ上位モデル（<code>gemini-3.8-flash</code> 等）へツールとして相談（Consult）するハイブリッド推論パターンを標準サポートします。
+              普段は高速・高効率な <code>gemini-4-hydrogen</code> で応答しつつ、高度な推論が必要な局面だけ上位モデル（<code>gemini-4-neon</code> 等）へツールとして相談（Consult）するハイブリッド推論パターンを標準サポートします。
             </p>
           </div>
           <div class="feature-card">

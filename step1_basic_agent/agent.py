@@ -42,7 +42,7 @@ travel_policy_skill_toolset = create_travel_policy_skill_toolset()
 # Step 1 の単一コンシェルジュエージェント定義
 root_agent = Agent(
     name="step1_basic_concierge",
-    model="gemini-3.8-flash",
+    model="gemini-4-neon",
     description=(
         "Workcation and corporate travel concierge agent with Travel Policy Skill "
         "and deterministic client-side booking guardrails."

@@ -43,10 +43,10 @@ from workcation_concierge.schemas import (
 )
 from workcation_concierge.skill_loader import create_travel_policy_skill_toolset
 
-# 1. 要求ヒアリング・構造化抽出エージェント (mode="task", gemini-3.8-flash)
+# 1. 要求ヒアリング・構造化抽出エージェント (mode="task", gemini-4-neon)
 intake_agent = Agent(
     name="intake_agent",
-    model="gemini-3.8-flash",
+    model="gemini-4-neon",
     mode="task",
     output_schema=TripRequest,
     description="Interactive intake agent that extracts structured TripRequest parameters.",
@@ -72,10 +72,10 @@ fetch_workcation_metrics_step = FunctionNode(
     name="fetch_workcation_metrics",
 )
 
-# 3. 並列ブランチ2: フライト・ホテル候補検索エージェント (mode="single_turn", gemini-3.5-flash-lite)
+# 3. 並列ブランチ2: フライト・ホテル候補検索エージェント (mode="single_turn", gemini-4-hydrogen)
 search_agent = Agent(
     name="search_agent",
-    model="gemini-3.5-flash-lite",
+    model="gemini-4-hydrogen",
     mode="single_turn",
     output_schema=CandidatePlan,
     description="High-speed single-turn flight and hotel search agent.",
@@ -224,10 +224,10 @@ def replan_notice(node_input: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# 6. 最終予約実行エージェント (gemini-3.8-flash + enforce_booking_guardrail)
+# 6. 最終予約実行エージェント (gemini-4-hydrogen + enforce_booking_guardrail)
 booking_agent = Agent(
     name="booking_agent",
-    model="gemini-3.8-flash",
+    model="gemini-4-hydrogen",
     mode="single_turn",
     output_schema=BookingResult,
     description="Executes the itinerary reservation guarded by enforce_booking_guardrail.",

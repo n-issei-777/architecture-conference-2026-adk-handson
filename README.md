@@ -56,7 +56,7 @@ Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)** および
 
 ## 2. クイックスタート (Vertex AI ADC & uv)
 
-本ハンズオンでは、Gemini API キーではなく **Google Cloud Vertex AI の Application Default Credentials (ADC)** を使用します。また、モデルには `gemini-3.8-flash`（対話・推論・オーケストレーション）および `gemini-3.5-flash-lite`（高速な単発抽出）を使用します。
+本ハンズオンでは、Gemini API キーではなく **Google Cloud Vertex AI の Application Default Credentials (ADC)** を使用します。また、モデルには高度な推論を担う `gemini-4-neon`（Step 1 単一エージェントおよび Step 2 対話ヒアリング）と、高速・高効率なエージェント実行を担う `gemini-4-hydrogen`（候補検索・予約実行）を使用します。
 
 ### 2.1 Google Cloud 認証と環境変数の設定
 
@@ -65,12 +65,12 @@ gcloud auth application-default login
 cp .env_example .env
 ```
 
-`.env` ファイルをエディタで開き、ご自身の Google Cloud プロジェクト ID を設定してください。
+`.env` ファイルをエディタで開き、ご自身の Google Cloud プロジェクト ID を設定してください（`gemini-4-hydrogen` / `gemini-4-neon` は Vertex AI の `global` エンドポイントを使用します）。
 
 ```ini
 GOOGLE_GENAI_USE_VERTEXAI=TRUE
 GOOGLE_CLOUD_PROJECT=your-gcp-project-id
-GOOGLE_CLOUD_LOCATION=us-central1
+GOOGLE_CLOUD_LOCATION=global
 ```
 
 ### 2.2 依存関係のインストールとテスト実行
@@ -96,7 +96,7 @@ uv run --no-sync --python /usr/bin/python3.13 ty check
 
 ### Step 1: 単一エージェント + Skills + 決定論的 Callback ガードレール
 
-[step1_basic_agent/agent.py](step1_basic_agent/agent.py) では、`gemini-3.8-flash` を用いた単一エージェントに以下の3つを組み合わせています。
+[step1_basic_agent/agent.py](step1_basic_agent/agent.py) では、`gemini-4-neon` を用いた単一エージェントに以下の3つを組み合わせています。
 1. **SkillToolset** ([skills/travel-policy/SKILL.md](skills/travel-policy/SKILL.md)): 社内の出張・ワーケーション規定（通信速度 50 Mbps 以上、一般社員のスイート・ビジネスクラス禁止、150,000 円上限など）をオンデマンドで注入。
 2. **Travel SaaS MCP ツール群** ([src/workcation_concierge/mcp_server.py](src/workcation_concierge/mcp_server.py)): フライト検索・ホテル検索・予約実行ツール。
 3. **`before_tool_callback`** ([src/workcation_concierge/guardrails.py](src/workcation_concierge/guardrails.py)): 外部 SaaS である MCP サーバーにリクエストが送信される直前に、クライアント側でグレード違反や予算超過（`total_jpy > state["approved_limit_jpy"]`）を 100% ブロック。
@@ -126,13 +126,13 @@ Step 2 では、ADK 2.0 の `Workflow` グラフを用いて以下を実装し�
 - 完成版リファレンス実装: [step2_workflow_agent/agent.py](step2_workflow_agent/agent.py)
 
 #### ワークフロー構成
-1. **`intake_agent`** (`mode="task"`, `output_schema=TripRequest`, `gemini-3.8-flash`): ユーザーの要望から都市・泊数・クラスを構造化抽出。
+1. **`intake_agent`** (`mode="task"`, `output_schema=TripRequest`, `gemini-4-neon`): ユーザーの要望から都市・泊数・クラスを高度な推論で構造化抽出。
 2. **並列 Fan-Out + `JoinNode("join_research")`**:
    - `fetch_workcation_metrics`: Python 関数ノードで対象都市の Wi-Fi 速度とコワーキング環境を取得（0 LLM トークン）。
-   - `search_agent` (`mode="single_turn"`, `output_schema=CandidatePlan`, `gemini-3.5-flash-lite`): 最安のフライト・ホテル候補を高速抽出。
+   - `search_agent` (`mode="single_turn"`, `output_schema=CandidatePlan`, `gemini-4-hydrogen`): 最安のフライト・ホテル候補を高速抽出。
 3. **`calculate_and_route`** (決定論的 Python `FunctionNode`): LLM に計算を任せず Python で正確な合計金額を算出し、`<= 150,000 JPY` なら `route="auto_book"`、`> 150,000 JPY` なら `route="needs_approval"` へ分岐。
 4. **`manager_approval_gate`** (`RequestInput` HITL ゲート): 予算超過時にワークフローを一時停止し、上長が承認すると `Session.state["approved_limit_jpy"]` を新しい承認額（例: 250,000 円）に更新して `booking_agent` へルーティング。
-5. **`booking_agent`** (`gemini-3.8-flash` + `enforce_booking_guardrail`): 更新された `approved_limit_jpy` の範囲内で安全に `reserve_itinerary` を実行。
+5. **`booking_agent`** (`gemini-4-hydrogen` + `enforce_booking_guardrail`): 更新された `approved_limit_jpy` の範囲内で安全に `reserve_itinerary` を実行。
 
 #### Web UI で Step 2 ワークフローを実行する
 ```bash
@@ -157,6 +157,7 @@ uv run --no-sync --python /usr/bin/python3.13 agents-cli eval run --app-name ste
 uv run --no-sync --python /usr/bin/python3.13 agents-cli deploy \
   --deployment-target agent_runtime \
   --project "${GOOGLE_CLOUD_PROJECT}" \
-  --region "${GOOGLE_CLOUD_LOCATION}" \
+  --region us-central1 \
+  --env-vars "GOOGLE_CLOUD_LOCATION=global" \
   --service-name "workcation-concierge-workflow"
 ```

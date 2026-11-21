@@ -5,27 +5,27 @@
 ### Purpose & Scope
 - **Objective**: Provide a hands-on reference architecture demonstrating how to evolve from a single LLM agent with deterministic client-side guardrails (Step 1) to a production-grade Google ADK 2.0 hybrid graph `Workflow` (Step 2) and continuous evaluation/deployment lifecycle (Step 3).
 - **Models**:
-  - `gemini-3.8-flash`: Complex multi-turn intake (`mode="task"`), policy reasoning, and booking summary synthesis.
-  - `gemini-3.5-flash-lite`: High-speed single-turn candidate flight/hotel extraction (`mode="single_turn"`).
-- **Authentication**: Vertex AI Application Default Credentials (`GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `gcloud auth application-default login`). Raw Gemini API keys are never used.
+  - `gemini-4-neon`: Complex multi-turn intake (`mode="task"`), policy reasoning, and Step 1 single-agent orchestration.
+  - `gemini-4-hydrogen`: High-speed single-turn candidate flight/hotel extraction (`mode="single_turn"`) and callback-guarded booking execution.
+- **Authentication**: Vertex AI Application Default Credentials (`GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_LOCATION=global`, `gcloud auth application-default login`). Raw Gemini API keys are never used.
 
 ### Step 1 vs. Step 2 Architecture
 
 #### Step 1: Single Agent + Deterministic Guardrail (`step1_basic_agent/agent.py`)
-In Step 1, a single `LlmAgent` (`gemini-3.8-flash`) orchestrates corporate travel policy lookup via `SkillToolset` (`skills/travel-policy/SKILL.md`), flight/hotel search, cost calculation, and booking reservation against an external Travel SaaS MCP toolset (`src/workcation_concierge/mcp_server.py`). A deterministic `before_tool_callback` (`enforce_booking_guardrail` in `src/workcation_concierge/guardrails.py`) intercepts `reserve_itinerary` before execution.
+In Step 1, a single `LlmAgent` (`gemini-4-neon`) orchestrates corporate travel policy lookup via `SkillToolset` (`skills/travel-policy/SKILL.md`), flight/hotel search, cost calculation, and booking reservation against an external Travel SaaS MCP toolset (`src/workcation_concierge/mcp_server.py`). A deterministic `before_tool_callback` (`enforce_booking_guardrail` in `src/workcation_concierge/guardrails.py`) intercepts `reserve_itinerary` before execution.
 
 #### Step 2: ADK 2.0 Hybrid Graph `Workflow` (`step2_workflow_agent/agent.py`)
 In Step 2, orchestration is refactored into a declarative ADK 2.0 `Workflow` combining LLM agent nodes, parallel fan-out/fan-in (`JoinNode`), zero-LLM deterministic Python calculation/routing (`FunctionNode`), and a Human-in-the-Loop (`RequestInput`) manager approval gate.
 
 ```mermaid
 flowchart TD
-    START["START"] --> Intake["intake_agent (LlmAgent: gemini-3.8-flash, mode=task, output_schema=TripRequest)"]
+    START["START"] --> Intake["intake_agent (LlmAgent: gemini-4-neon, mode=task, output_schema=TripRequest)"]
     Intake --> Metrics["fetch_workcation_metrics (FunctionNode: 0-LLM Wi-Fi & Workspace Lookup)"]
-    Intake --> Search["search_agent (LlmAgent: gemini-3.5-flash-lite, mode=single_turn, output_schema=CandidatePlan)"]
+    Intake --> Search["search_agent (LlmAgent: gemini-4-hydrogen, mode=single_turn, output_schema=CandidatePlan)"]
     Metrics --> Join["join_research (JoinNode)"]
     Search --> Join
     Join --> CalcRoute["calculate_and_route (FunctionNode: 0-LLM Cost Math & Budget Routing)"]
-    CalcRoute -- "route: auto_book (<= 150,000 JPY)" --> Book["booking_agent (LlmAgent: gemini-3.8-flash + before_tool_callback)"]
+    CalcRoute -- "route: auto_book (<= 150,000 JPY)" --> Book["booking_agent (LlmAgent: gemini-4-hydrogen + before_tool_callback)"]
     CalcRoute -- "route: needs_approval (> 150,000 JPY)" --> Approval["manager_approval_gate (FunctionNode: RequestInput HITL Gate)"]
     Approval -- "route: approved (raises state['approved_limit_jpy'])" --> Book
     Approval -- "route: rejected" --> Replan["replan_notice (FunctionNode: Rejection Summary)"]
@@ -41,11 +41,11 @@ flowchart TD
 sequenceDiagram
     actor User as Employee / Manager
     participant Runner as ADK Runner
-    participant Intake as intake_agent (gemini-3.8-flash)
-    participant Parallel as fetch_workcation_metrics + search_agent (gemini-3.5-flash-lite)
+    participant Intake as intake_agent (gemini-4-neon)
+    participant Parallel as fetch_workcation_metrics + search_agent (gemini-4-hydrogen)
     participant Calc as calculate_and_route (Python FunctionNode)
     participant Gate as manager_approval_gate (RequestInput)
-    participant Book as booking_agent + enforce_booking_guardrail
+    participant Book as booking_agent (gemini-4-hydrogen) + enforce_booking_guardrail
     participant MCP as Travel SaaS MCP
 
     User->>Runner: Submit travel & workcation request (e.g., Hawaii, 4 nights)

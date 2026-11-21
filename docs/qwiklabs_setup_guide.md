@@ -111,7 +111,7 @@ Verify the full flow in an **Incognito Window** before Day 1:
   ```bash
   gcloud config set project YOUR_QWIKLABS_PROJECT_ID
   export GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
-  export GOOGLE_CLOUD_LOCATION=us-central1
+  export GOOGLE_CLOUD_LOCATION=global
   export GOOGLE_GENAI_USE_VERTEXAI=TRUE
   gcloud auth list
   ```
@@ -145,7 +145,7 @@ Verify the full flow in an **Incognito Window** before Day 1:
 | **16:00 - 16:05** | **Chapter 0: Overview & Architecture** | Share `https://explore.qwiklabs.com` (or direct `https://explore.qwiklabs.com/classroom/<ID>/`) and the HTML Tutorial URL (`https://n-issei-777.github.io/architecture-conference-2026-adk-handson/`). Frame the core thesis: why deterministic `before_tool_callback` + ADK 2.0 `Workflow` are required for production. |
 | **16:05 - 16:15** | **Chapter 1: Environment Setup** | Have attendees open an **Incognito Window**, sign in to `explore.qwiklabs.com` (purple Classroom card on home page), click **Start Lab**, open Cloud Shell, clone the repository, and run `uv sync --dev --index https://pypi.org/simple --python python3.13`. Co-trainers add any unmatched attendee emails in **Students** -> **Add Student**. |
 | **16:15 - 16:35** | **Chapter 2: Step 1 — Core ADK & Guardrails** | Have attendees read `step1_basic_agent/agent.py` and `src/workcation_concierge/guardrails.py` before running `adk web`. Test Sapporo 2-night booking (Approved) vs. Suite / Hawaii over-budget booking (Blocked 100% by `enforce_booking_guardrail`). |
-| **16:35 - 17:05** | **Chapter 3: Step 2 — ADK 2.0 `Workflow` & `agy`** | Run `uv run agents-cli setup` to equip `agy` with official ADK skills. Walk through the 6-node hybrid graph (`mode="task"`, parallel 0-LLM Python function + `gemini-3.5-flash-lite`, `JoinNode`, deterministic `if` router, and `RequestInput` HITL gate). Test both Route A (Sapporo) and Route B (Hawaii -> `RequestInput` approval -> `Session.state["approved_limit_jpy"]` update). |
+| **16:35 - 17:05** | **Chapter 3: Step 2 — ADK 2.0 `Workflow` & `agy`** | Run `uv run agents-cli setup` to equip `agy` with official ADK skills. Walk through the 6-node hybrid graph (`mode="task"` on `gemini-4-neon`, parallel 0-LLM Python function + `gemini-4-hydrogen`, `JoinNode`, deterministic `if` router, and `RequestInput` HITL gate). Test both Route A (Sapporo) and Route B (Hawaii -> `RequestInput` approval -> `Session.state["approved_limit_jpy"]` update). |
 | **17:05 - 17:25** | **Chapter 4: Step 3 — Evaluation & Deployment** | Run `uv run pytest`, `uv run ruff check .`, `uv run ty check`, and `uv run agents-cli eval run`. Walk through deploying to **Vertex AI Agent Runtime (Agent Engine)** via `uv run agents-cli deploy --deployment-target agent_runtime`. |
 | **17:25 - 17:30** | **Chapters 5 & 6: Gemini Enterprise & Wrap-Up** | Introduce one-command publishing (`uv run agents-cli publish gemini`) and summarize why developer CLI harnesses (`agy`, etc.) build the agent while ADK 2.0 governs runtime execution. Announce that the Qwiklabs environment remains open until **21:00 JST** for self-paced practice. |
 | **17:30 - 21:00** | **Post-Session Self-Paced Window** | Leave the Classroom lab **Active** so attendees have a full **5 hours** from session start (`16:00 - 21:00 JST`) to experiment on their own. |
@@ -169,7 +169,7 @@ Verify the full flow in an **Incognito Window** before Day 1:
   ```bash
   export GOOGLE_GENAI_USE_VERTEXAI=TRUE
   export GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
-  export GOOGLE_CLOUD_LOCATION=us-central1
+  export GOOGLE_CLOUD_LOCATION=global
   ```
 
 ### Q4: Port 8000 is already in use when switching from Step 1 to Step 2

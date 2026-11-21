@@ -26,11 +26,14 @@ from google.genai import types
 from step1_basic_agent.agent import root_agent as step1_root_agent
 from step2_starter.agent import root_agent as step2_starter_agent
 from step2_workflow_agent.agent import (
+    booking_agent,
     calculate_and_route,
     fetch_workcation_metrics_node,
+    intake_agent,
     join_research,
     manager_approval_gate,
     replan_notice,
+    search_agent,
 )
 from step2_workflow_agent.agent import (
     root_agent as step2_workflow_root_agent,
@@ -38,15 +41,18 @@ from step2_workflow_agent.agent import (
 
 
 def test_step1_and_step2_agents_construct_cleanly() -> None:
-    # Step 1, Step 2 Starter, Step 2 Workflow の各 root_agent が正常に構築されることを検証
+    # Step 1, Step 2 Starter, Step 2 Workflow の各エージェントと Gemini 4 モデル割り当てを検証
     assert isinstance(step1_root_agent, LlmAgent)
-    assert step1_root_agent.model == "gemini-3.8-flash"
+    assert step1_root_agent.model == "gemini-4-neon"
     assert step1_root_agent.before_tool_callback is not None
 
     assert step2_starter_agent is not None
 
     assert isinstance(step2_workflow_root_agent, Workflow)
     assert step2_workflow_root_agent.name == "workcation_concierge_workflow"
+    assert intake_agent.model == "gemini-4-neon"
+    assert search_agent.model == "gemini-4-hydrogen"
+    assert booking_agent.model == "gemini-4-hydrogen"
 
 
 async def test_workflow_deterministic_auto_book_and_hitl_approval_via_runner() -> None:
