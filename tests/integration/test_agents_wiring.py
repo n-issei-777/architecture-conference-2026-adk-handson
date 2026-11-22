@@ -41,18 +41,19 @@ from step2_workflow_agent.agent import (
 
 
 def test_step1_and_step2_agents_construct_cleanly() -> None:
-    # Step 1, Step 2 Starter, Step 2 Workflow の各エージェントと Gemini 4 モデル割り当てを検証
+    # Step 1 (前後両状態), Step 2 Starter, Step 2 Workflow の構築とモデル割り当てを検証
     assert isinstance(step1_root_agent, LlmAgent)
     assert step1_root_agent.model == "gemini-4-neon"
-    assert step1_root_agent.before_tool_callback is not None
 
-    assert step2_starter_agent is not None
+    assert isinstance(step2_starter_agent, Workflow)
+    assert step2_starter_agent.name == "step2_starter_workflow"
 
     assert isinstance(step2_workflow_root_agent, Workflow)
     assert step2_workflow_root_agent.name == "workcation_concierge_workflow"
     assert intake_agent.model == "gemini-4-neon"
     assert search_agent.model == "gemini-4-hydrogen"
     assert booking_agent.model == "gemini-4-hydrogen"
+    assert booking_agent.before_tool_callback is not None
 
 
 async def test_workflow_deterministic_auto_book_and_hitl_approval_via_runner() -> None:

@@ -98,9 +98,7 @@ join_research = JoinNode(name="join_research")
 # 4. 確定計算 & 条件分岐ルーティングノード (0-LLM Python FunctionNode)
 def calculate_and_route(ctx: Context, node_input: dict[str, Any]) -> Event:
     """Calculate exact itinerary cost in Python and route to auto_book or needs_approval."""
-    # TODO: ハンズオン課題1 - JoinNode の出力から都市・泊数・クラスを取り出し、
-    # calculate_itinerary_cost で正確な合計金額 (total_jpy) を算出して
-    # 150,000円以下なら route="auto_book"、超過なら route="needs_approval" を返すよう確認・拡張
+    # JoinNode の出力から都市・泊数・クラスを取得し、確定合計金額 (total_jpy) を算出
     candidate = node_input.get("search_agent") or {}
     metrics = node_input.get("fetch_workcation_metrics") or {}
     city = str(candidate.get("city") or metrics.get("city") or "sapporo")
@@ -117,9 +115,12 @@ def calculate_and_route(ctx: Context, node_input: dict[str, Any]) -> Event:
     total_jpy = int(cost_breakdown.get("total_jpy", 0))
     approved_limit = int(ctx.state.get("approved_limit_jpy", DEFAULT_APPROVED_LIMIT_JPY))
 
-    route = "auto_book" if total_jpy <= approved_limit else "needs_approval"
+    # TODO (Step 2 課題1): total_jpy <= approved_limit なら "auto_book"、
+    # 超過なら "needs_approval" へ分岐するよう下の 1 行を修正
+    route = "auto_book"
     merged_plan = {
         **cost_breakdown,
+        "total_jpy": total_jpy,
         "wifi_mbps": metrics.get("wifi_mbps", cost_breakdown.get("wifi_mbps", 100)),
         "coworking_spaces": metrics.get("coworking_spaces", 0),
         "approved_limit_jpy": approved_limit,
@@ -139,9 +140,7 @@ async def _manager_approval_gate_fn(
     node_input: dict[str, Any],
 ) -> AsyncGenerator[RequestInput | Event]:
     """Pause with RequestInput when over budget, and raise approved_limit_jpy on approval."""
-    # TODO: ハンズオン課題2 - ctx.resume_inputs に "manager_approval" がある場合は
-    # state["approved_limit_jpy"] を更新して route="approved" を送出し、
-    # 未回答の場合は RequestInput(interrupt_id="manager_approval", ...) を yield する動作を確認
+    # 未回答なら RequestInput で一時停止し、承認再開時は state["approved_limit_jpy"] を更新
     resume_payload = (ctx.resume_inputs or {}).get("manager_approval")
     if resume_payload is None:
         total_jpy = int(node_input.get("total_jpy", 0))
@@ -229,29 +228,18 @@ booking_agent = Agent(
     before_tool_callback=enforce_booking_guardrail,
 )
 
-# TODO: ハンズオン課題3 - Workflow の edges 定義を確認し、`uv run adk web .` で動作を確認
+# TODO (Step 2 課題2): agy (または手動編集) で以下の 6 ノードハイブリッドグラフを edges に配線
+#   1. ("START", intake_agent)
+#   2. (intake_agent, (fetch_workcation_metrics_step, search_agent))
+#   3. ((fetch_workcation_metrics_step, search_agent), join_research)
+#   4. (join_research, calculate_and_route)
+#   5. (calculate_and_route, {"auto_book": booking_agent, "needs_approval": manager_approval_gate})
+#   6. (manager_approval_gate, {"approved": booking_agent, "rejected": replan_notice})
 root_agent = Workflow(
     name="step2_starter_workflow",
     description="Starter ADK 2.0 Hybrid Workflow for Workcation & Smart Travel Concierge.",
     edges=[
         ("START", intake_agent),
-        (intake_agent, (fetch_workcation_metrics_step, search_agent)),
-        ((fetch_workcation_metrics_step, search_agent), join_research),
-        (join_research, calculate_and_route),
-        (
-            calculate_and_route,
-            {
-                "auto_book": booking_agent,
-                "needs_approval": manager_approval_gate,
-            },
-        ),
-        (
-            manager_approval_gate,
-            {
-                "approved": booking_agent,
-                "rejected": replan_notice,
-            },
-        ),
     ],
 )
 

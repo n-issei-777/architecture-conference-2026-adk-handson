@@ -24,7 +24,7 @@ from google.genai import types
 
 from workcation_concierge.guardrails import (
     DEFAULT_APPROVED_LIMIT_JPY,
-    enforce_booking_guardrail,
+    enforce_booking_guardrail,  # noqa: F401
 )
 from workcation_concierge.mcp_server import (
     calculate_itinerary_cost,
@@ -67,7 +67,8 @@ root_agent = Agent(
         reserve_itinerary,
         get_reservations,
     ],
-    before_tool_callback=enforce_booking_guardrail,
+    # TODO (Step 1 ハンズオン): None を enforce_booking_guardrail に変更しガードレールを有効化
+    before_tool_callback=None,
 )
 
 

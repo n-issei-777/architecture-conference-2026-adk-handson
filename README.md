@@ -96,7 +96,7 @@ uv run --no-sync --python /usr/bin/python3.13 ty check
 
 ### Step 1: 単一エージェント + Skills + 決定論的 Callback ガードレール
 
-[step1_basic_agent/agent.py](step1_basic_agent/agent.py) では、`gemini-4-neon` を用いた単一エージェントに以下の3つを組み合わせています。
+[step1_basic_agent/agent.py](step1_basic_agent/agent.py) では、`gemini-4-neon` を用いた単一エージェントに以下の3つを組み合わせます（初期状態では `before_tool_callback=None` になっており、ハンズオンで `enforce_booking_guardrail` に書き換えてガードレールの有無を比較体験します）。
 1. **SkillToolset** ([skills/travel-policy/SKILL.md](skills/travel-policy/SKILL.md)): 社内の出張・ワーケーション規定（通信速度 50 Mbps 以上、一般社員のスイート・ビジネスクラス禁止、150,000 円上限など）をオンデマンドで注入。
 2. **Travel SaaS MCP ツール群** ([src/workcation_concierge/mcp_server.py](src/workcation_concierge/mcp_server.py)): フライト検索・ホテル検索・予約実行ツール。
 3. **`before_tool_callback`** ([src/workcation_concierge/guardrails.py](src/workcation_concierge/guardrails.py)): 外部 SaaS である MCP サーバーにリクエストが送信される直前に、クライアント側でグレード違反や予算超過（`total_jpy > state["approved_limit_jpy"]`）を 100% ブロック。
