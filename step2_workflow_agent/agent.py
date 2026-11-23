@@ -30,14 +30,15 @@ from workcation_concierge.workflow_nodes import (
     build_cost_plan,
     fetch_workcation_metrics_node,
     fetch_workcation_metrics_step,
+    gemini_model,
     replan_notice,
     text_event,
 )
 
-# 1. 要件ヒアリング・タスクノード (mode="task", gemini-4-neon)
+# 1. 要件ヒアリング・タスクノード (mode="task", gemini-4-hydrogen)
 intake_agent = Agent(
     name="intake_agent",
-    model="gemini-4-neon",
+    model=gemini_model("gemini-4-hydrogen"),
     mode="task",
     output_schema=TripRequest,
     description="ユーザーとの対話から出張・ワーケーションの希望条件を収集するタスクノード",
@@ -54,7 +55,7 @@ intake_agent = Agent(
 # 2. 並列ブランチB: MCP 経由でフライト・ホテルを検索する高速エージェント (gemini-4-hydrogen)
 search_agent = Agent(
     name="search_agent",
-    model="gemini-4-hydrogen",
+    model=gemini_model("gemini-4-hydrogen"),
     mode="single_turn",
     output_schema=CandidatePlan,
     description="MCP サーバー経由でフライトとホテルを1ターン検索する高速エージェントノード",
@@ -98,7 +99,7 @@ def calculate_and_route(ctx: Context, node_input: dict[str, Any]) -> Event:
 # 4. Human-in-the-Loop 上長承認タスクノード (mode="task")
 manager_approval_task = Agent(
     name="manager_approval_task",
-    model="gemini-4-hydrogen",
+    model=gemini_model("gemini-4-hydrogen"),
     mode="task",
     output_schema=ApprovalDecision,
     description="予算超過プランについて上長の承認可否と新しい予算上限額を対話で確認するタスクノード",
@@ -115,7 +116,7 @@ manager_approval_task = Agent(
 # 5. 最終予約確定エージェント (McpToolset + enforce_booking_guardrail)
 booking_agent = Agent(
     name="booking_agent",
-    model="gemini-4-hydrogen",
+    model=gemini_model("gemini-4-hydrogen"),
     mode="single_turn",
     description="enforce_booking_guardrail の保護下で MCP 予約ツールを実行する最終エージェント",
     instruction=(

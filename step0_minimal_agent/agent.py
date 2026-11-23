@@ -24,6 +24,7 @@ from workcation_concierge.mcp_server import (
     calculate_itinerary_cost,
     fetch_workcation_metrics,
 )
+from workcation_concierge.workflow_nodes import gemini_model
 
 
 def get_city_workcation_info(city: str, nights: int = 2) -> dict[str, Any]:
@@ -50,7 +51,7 @@ def get_city_workcation_info(city: str, nights: int = 2) -> dict[str, Any]:
 # 最小構成の ADK エージェント定義 (Agent + ツール関数1個)
 root_agent = Agent(
     name="step0_minimal_agent",
-    model="gemini-4-hydrogen",
+    model=gemini_model("gemini-4-hydrogen"),
     description="都市ごとのワーケーション通信環境と概算費用を案内する最小エージェント",
     instruction=(
         "あなたは親切なワーケーション案内アシスタントです。\n"

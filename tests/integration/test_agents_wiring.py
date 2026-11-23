@@ -21,6 +21,7 @@ from typing import Any
 from google.adk import Workflow
 from google.adk.agents import LlmAgent
 from google.adk.apps import App, ResumabilityConfig
+from google.adk.models import Gemini
 from google.adk.runners import InMemoryRunner
 from google.adk.tools.mcp_tool import McpToolset
 from google.adk.workflow import DEFAULT_ROUTE
@@ -46,14 +47,21 @@ from step2_workflow_agent.agent import (
 
 
 def test_step0_step1_and_step2_agents_construct_with_japanese_prompts_and_mcp() -> None:
-    # Step 0-2 の各エージェント構築・日本語プロンプト・McpToolset 配線を検証
+    # Step 0-2 の各エージェント構築・日本語プロンプト・リトライ設定・McpToolset 配線を検証
+    def _assert_gemini_with_retry(agent: LlmAgent, expected_model: str) -> None:
+        assert isinstance(agent.model, Gemini)
+        assert agent.model.model == expected_model
+        assert agent.model.retry_options is not None
+        assert (agent.model.retry_options.attempts or 0) >= 5
+        assert 429 in (agent.model.retry_options.http_status_codes or [])
+
     assert isinstance(step0_root_agent, LlmAgent)
-    assert step0_root_agent.model == "gemini-4-hydrogen"
+    _assert_gemini_with_retry(step0_root_agent, "gemini-4-hydrogen")
     assert "ワーケーション" in str(step0_root_agent.instruction)
     assert get_city_workcation_info("札幌")["city"] == "sapporo"
 
     assert isinstance(step1_root_agent, LlmAgent)
-    assert step1_root_agent.model == "gemini-3.8-flash"
+    _assert_gemini_with_retry(step1_root_agent, "gemini-3.8-flash")
     assert "150,000" in str(step1_root_agent.instruction) or "15万円" in str(
         step1_root_agent.instruction
     )
@@ -64,10 +72,11 @@ def test_step0_step1_and_step2_agents_construct_with_japanese_prompts_and_mcp() 
 
     assert isinstance(step2_workflow_root_agent, Workflow)
     assert step2_workflow_root_agent.name == "workcation_concierge_workflow"
-    assert intake_agent.model == "gemini-4-neon"
-    assert search_agent.model == "gemini-4-hydrogen"
+    _assert_gemini_with_retry(intake_agent, "gemini-4-hydrogen")
+    _assert_gemini_with_retry(search_agent, "gemini-4-hydrogen")
     assert manager_approval_task.mode == "task"
-    assert booking_agent.model == "gemini-4-hydrogen"
+    _assert_gemini_with_retry(manager_approval_task, "gemini-4-hydrogen")
+    _assert_gemini_with_retry(booking_agent, "gemini-4-hydrogen")
     assert booking_agent.before_tool_callback is not None
     assert any(isinstance(t, McpToolset) for t in search_agent.tools)
     assert any(isinstance(t, McpToolset) for t in booking_agent.tools)

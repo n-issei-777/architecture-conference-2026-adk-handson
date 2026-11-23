@@ -20,6 +20,7 @@ from typing import Any
 
 from google.adk import Context, Event
 from google.adk.events import EventActions
+from google.adk.models import Gemini
 from google.adk.workflow import DEFAULT_ROUTE, FunctionNode
 from google.genai import types
 
@@ -29,6 +30,21 @@ from workcation_concierge.mcp_server import (
     fetch_workcation_metrics,
 )
 from workcation_concierge.schemas import ApprovalDecision
+
+# 60 名同時実行時の 429/503 対策として指数バックオフ＋ジッター付きリトライを設定
+DEFAULT_RETRY_OPTIONS = types.HttpRetryOptions(
+    attempts=5,
+    initial_delay=1.0,
+    max_delay=16.0,
+    exp_base=2.0,
+    jitter=1.0,
+    http_status_codes=[429, 500, 503, 504],
+)
+
+
+def gemini_model(model_name: str = "gemini-4-hydrogen") -> Gemini:
+    """429/503 リトライ設定付きの Gemini モデルオブジェクトを生成."""
+    return Gemini(model=model_name, retry_options=DEFAULT_RETRY_OPTIONS)
 
 
 def text_event(

@@ -21,6 +21,7 @@ from google.adk import Agent
 from workcation_concierge.guardrails import enforce_booking_guardrail  # noqa: F401
 from workcation_concierge.mcp_client import create_travel_mcp_toolset
 from workcation_concierge.skill_loader import create_travel_policy_skill_toolset
+from workcation_concierge.workflow_nodes import gemini_model
 
 # 社内旅費規定スキル (SKILL.md) と外部予約SaaS MCPサーバー (McpToolset) の準備
 travel_policy_skill_toolset = create_travel_policy_skill_toolset()
@@ -30,7 +31,7 @@ travel_mcp_toolset = create_travel_mcp_toolset()
 # 最初はプロンプト (instruction) のみの防御状態 (before_tool_callback=None)
 root_agent = Agent(
     name="step1_basic_concierge",
-    model="gemini-3.8-flash",
+    model=gemini_model("gemini-3.8-flash"),
     description="社内規定スキルと旅行予約MCPサーバーを連携する出張・ワーケーション手配エージェント",
     instruction=(
         "あなたは企業の出張・ワーケーション手配コンシェルジュです。\n"

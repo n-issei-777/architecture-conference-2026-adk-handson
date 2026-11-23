@@ -48,7 +48,7 @@ Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)**、コー�
 
 ## 2. セットアップ (Cloud Shell / ローカル共通)
 
-本教材は API キーを使用せず、**Vertex AI Application Default Credentials (ADC)** と `global` エンドポイント上の `gemini-4-neon` / `gemini-4-hydrogen` を使用します。
+本教材は API キーを使用せず、**Vertex AI Application Default Credentials (ADC)** と `global` エンドポイント上の `gemini-4-hydrogen` / `gemini-3.8-flash` を使用します。
 
 ```bash
 export GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
@@ -88,7 +88,7 @@ uv run agents-cli deploy \
   --deployment-target agent_runtime \
   --project "${GOOGLE_CLOUD_PROJECT}" \
   --region us-central1 \
-  --env-vars "GOOGLE_CLOUD_LOCATION=global" \
+  --env-vars "GOOGLE_CLOUD_LOCATION=global,GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true,OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_AND_EVENT" \
   --service-name "workcation-concierge-workflow"
 ```
 デプロイ完了後、Google Cloud コンソール上部の検索バーで **`Deployments`** を検索し、対象リソースの **「プレイグラウンド」タブ** からクラウド上のエージェントと直接会話できます。
@@ -126,7 +126,7 @@ Google ADK 2.0 (v2.15+) と agents-cli を使い、以下の要件を満たす�
 - 社内旅費規定を守りながら出張・ワーケーションを調査・見積もり・予約するコンシェルジュ（ご自身の業務テーマに書き換え可）
 
 【アーキテクチャ要件】
-1. 認証・モデル: Vertex AI ADC（GOOGLE_CLOUD_LOCATION=global）を使用。対話ヒアリングは gemini-4-neon、定型検索・予約・承認タスクは gemini-4-hydrogen を採用。
+1. 認証・モデル: Vertex AI ADC（GOOGLE_CLOUD_LOCATION=global）を使用。全ノードで高速・高スループットな gemini-4-hydrogen を採用。
 2. ツール連携: 外部予約 API は MCP サーバー（stdio / StreamableHTTP 切替対応）を McpToolset で接続。
 3. 多層防御ガードレイル: 予約実行ツールの直前に before_tool_callback を設定し、サーバー側で料金を再計算したうえで規定違反・予算超過を 100% 決定論的にブロックする。
 4. ADK 2.0 ハイブリッド Workflow:
