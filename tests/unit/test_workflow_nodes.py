@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Unit tests for Step 2 deterministic workflow nodes and RequestInput gate."""
+"""Unit tests for Step 2 deterministic workflow nodes and conversational approval routing."""
 
 from __future__ import annotations
 
@@ -20,20 +20,20 @@ from dataclasses import dataclass, field
 from typing import Any, cast
 
 from google.adk import Context
-from google.adk.events import Event, RequestInput
+from google.adk.events import Event
+from google.adk.workflow import DEFAULT_ROUTE
 from step2_workflow_agent.agent import (
-    _manager_approval_gate_fn as manager_approval_gate,
-)
-from step2_workflow_agent.agent import (
+    apply_approval_decision,
     calculate_and_route,
     fetch_workcation_metrics_node,
 )
+
+from workcation_concierge.schemas import ApprovalDecision
 
 
 @dataclass
 class _FakeContext:
     state: dict[str, Any] = field(default_factory=dict)
-    resume_inputs: dict[str, Any] = field(default_factory=dict)
 
 
 def _as_ctx(fake: _FakeContext) -> Context:
@@ -88,41 +88,34 @@ def test_calculate_and_route_needs_approval_over_150k() -> None:
     assert output["total_jpy"] == 242000
 
 
-async def test_manager_approval_gate_pauses_then_updates_limit() -> None:
-    # 初回実行時に RequestInput を yield し、承認再開時に approved_limit_jpy を更新することを検証
-    plan_payload = {
+def test_apply_approval_decision_updates_limit_or_routes_to_default() -> None:
+    # タスクノードの上長承認結果に応じて Session.state の上限更新と分岐が行われることを検証
+    calculated_plan = {
         "city": "hawaii",
         "nights": 4,
         "flight_class": "economy",
         "room_type": "standard",
         "total_jpy": 242000,
     }
-
-    # 1. 未承認状態では RequestInput を生成して一時停止
-    ctx_initial = _FakeContext(state={"approved_limit_jpy": 150000}, resume_inputs={})
-    emitted_initial = [
-        item async for item in manager_approval_gate(_as_ctx(ctx_initial), plan_payload)
-    ]
-    assert len(emitted_initial) == 1
-    assert isinstance(emitted_initial[0], RequestInput)
-    assert emitted_initial[0].interrupt_id == "manager_approval"
-
-    # 2. 上長承認レスポンス到着時は state["approved_limit_jpy"] を引き上げて route="approved" を送出
-    ctx_resumed = _FakeContext(
-        state={"approved_limit_jpy": 150000},
-        resume_inputs={
-            "manager_approval": {
-                "approved": True,
-                "approved_limit_jpy": 250000,
-                "approver_comment": "Approved for Q4 customer workshop in Hawaii",
-            }
-        },
+    ctx_ok = _FakeContext(state={"approved_limit_jpy": 150000, "calculated_cost": calculated_plan})
+    ev_ok = apply_approval_decision(
+        _as_ctx(ctx_ok),
+        ApprovalDecision(
+            approved=True,
+            approved_limit_jpy=250000,
+            approver_comment="ハワイ開発合宿のため承認",
+        ),
     )
-    emitted_resumed = [
-        item async for item in manager_approval_gate(_as_ctx(ctx_resumed), plan_payload)
-    ]
-    assert len(emitted_resumed) == 1
-    resumed_event = emitted_resumed[0]
-    assert isinstance(resumed_event, Event)
-    assert resumed_event.actions.route == "approved"
-    assert resumed_event.actions.state_delta["approved_limit_jpy"] == 250000
+    assert ev_ok.actions.route == "approved"
+    assert ev_ok.actions.state_delta["approved_limit_jpy"] == 250000
+    out_ok = cast(dict[str, Any], ev_ok.output)
+    assert out_ok["city"] == "hawaii"
+    assert out_ok["total_jpy"] == 242000
+
+    ctx_ng = _FakeContext(state={"approved_limit_jpy": 150000, "calculated_cost": calculated_plan})
+    ev_ng = apply_approval_decision(
+        _as_ctx(ctx_ng),
+        ApprovalDecision(approved=False, approved_limit_jpy=150000, approver_comment="予算超過"),
+    )
+    assert ev_ng.actions.route == DEFAULT_ROUTE
+    assert ev_ng.actions.state_delta["approved_limit_jpy"] == 150000

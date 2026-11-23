@@ -2,148 +2,69 @@
 
 ## 1. System Architecture Overview
 
-### Purpose & Scope
-- **Objective**: Provide a hands-on reference architecture demonstrating how to evolve from a single LLM agent with deterministic client-side guardrails (Step 1) to a production-grade Google ADK 2.0 hybrid graph `Workflow` (Step 2) and continuous evaluation/deployment lifecycle (Step 3).
-- **Models**:
-  - `gemini-4-neon`: Complex multi-turn intake (`mode="task"`), policy reasoning, and Step 1 single-agent orchestration.
-  - `gemini-4-hydrogen`: High-speed single-turn candidate flight/hotel extraction (`mode="single_turn"`) and callback-guarded booking execution.
-- **Authentication**: Vertex AI Application Default Credentials (`GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_LOCATION=global`, `gcloud auth application-default login`). Raw Gemini API keys are never used.
-
-### Step 1 vs. Step 2 Architecture
-
-#### Step 1: Single Agent + Deterministic Guardrail (`step1_basic_agent/agent.py`)
-In Step 1, a single `LlmAgent` (`gemini-4-neon`) orchestrates corporate travel policy lookup via `SkillToolset` (`skills/travel-policy/SKILL.md`), flight/hotel search, cost calculation, and booking reservation against an external Travel SaaS MCP toolset (`src/workcation_concierge/mcp_server.py`). A deterministic `before_tool_callback` (`enforce_booking_guardrail` in `src/workcation_concierge/guardrails.py`) intercepts `reserve_itinerary` before execution.
-
-#### Step 2: ADK 2.0 Hybrid Graph `Workflow` (`step2_workflow_agent/agent.py`)
-In Step 2, orchestration is refactored into a declarative ADK 2.0 `Workflow` combining LLM agent nodes, parallel fan-out/fan-in (`JoinNode`), zero-LLM deterministic Python calculation/routing (`FunctionNode`), and a Human-in-the-Loop (`RequestInput`) manager approval gate.
+- **Models** (`GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_LOCATION=global`, Vertex AI ADC):
+  - `gemini-4-neon`: Complex reasoning and conversational task extraction (`step1_basic_agent`, `intake_agent`).
+  - `gemini-4-hydrogen`: Fast single-turn search/booking and Step 0 / approval task nodes (`step0_minimal_agent`, `search_agent`, `manager_approval_task`, `booking_agent`).
+- **Progressive 4-Step Learning Architecture**:
+  - **Step 0 (`step0_minimal_agent/agent.py`)**: Minimal ~25-line `Agent` + 1 Python function tool (`get_city_workcation_info`) demonstrating `Agent`, `InMemorySessionService`, `Runner`, and `Event` recording.
+  - **Step 1 (`step1_basic_agent/agent.py`)**: Connects `SkillToolset` (`skills/travel-policy/SKILL.md`) and real stdio `McpToolset` (`src/workcation_concierge/mcp_client.py` -> `mcp_server.py`). Starts with `before_tool_callback=None` to demonstrate prompt-override bypass, then attaches `enforce_booking_guardrail` (`src/workcation_concierge/guardrails.py`).
+  - **Step 2 (`step2_starter/agent.py` & `step2_workflow_agent/agent.py`)**: Declarative ADK 2.0 `Workflow` combining `mode="task"` intake, parallel fan-out/fan-in (`JoinNode`), 0-LLM Python cost math & routing (`calculate_and_route`), conversational HITL manager approval (`manager_approval_task` + `apply_approval_decision` with `DEFAULT_ROUTE`), and callback-guarded MCP booking.
+  - **Step 3 (`agents-cli-manifest.yaml`, `Dockerfile`, `step2_workflow_agent/fast_api_app.py`)**: Evaluation (`agents-cli eval run`) and deployment to Agent Runtime in Gemini platform (`agents-cli deploy`), exposing `/api/reasoning_engine` and `/api/stream_reasoning_engine` for Google Cloud Console Playground (`VertexAiSessionService` auto-switch in `app_utils/services.py`).
 
 ```mermaid
-flowchart TD
-    START["START"] --> Intake["intake_agent (LlmAgent: gemini-4-neon, mode=task, output_schema=TripRequest)"]
-    Intake --> Metrics["fetch_workcation_metrics (FunctionNode: 0-LLM Wi-Fi & Workspace Lookup)"]
-    Intake --> Search["search_agent (LlmAgent: gemini-4-hydrogen, mode=single_turn, output_schema=CandidatePlan)"]
-    Metrics --> Join["join_research (JoinNode)"]
+flowchart LR
+    START(["START"]) --> Intake["intake_agent\n(mode='task', gemini-4-neon)"]
+    Intake --> Metrics["fetch_workcation_metrics\n(0-LLM FunctionNode)"]
+    Intake --> Search["search_agent\n(mode='single_turn' + McpToolset)"]
+    Metrics --> Join(["join_research\n(JoinNode)"])
     Search --> Join
-    Join --> CalcRoute["calculate_and_route (FunctionNode: 0-LLM Cost Math & Budget Routing)"]
-    CalcRoute -- "route: auto_book (<= 150,000 JPY)" --> Book["booking_agent (LlmAgent: gemini-4-hydrogen + before_tool_callback)"]
-    CalcRoute -- "route: needs_approval (> 150,000 JPY)" --> Approval["manager_approval_gate (FunctionNode: RequestInput HITL Gate)"]
-    Approval -- "route: approved (raises state['approved_limit_jpy'])" --> Book
-    Approval -- "route: rejected" --> Replan["replan_notice (FunctionNode: Rejection Summary)"]
-    Book --> Guardrail["enforce_booking_guardrail (before_tool_callback)"]
-    Guardrail --> MCP["External 3rd-Party Travel SaaS MCP (reserve_itinerary)"]
+    Join --> Calc["calculate_and_route\n(0-LLM 確定金額計算・分岐)"]
+    Calc -- "auto_book\n(<= 150,000円)" --> Book["booking_agent\n(+ before_tool_callback + McpToolset)"]
+    Calc -- "needs_approval\n(> 150,000円)" --> Task["manager_approval_task\n(mode='task' 上長承認対話)"]
+    Task --> Apply["apply_approval_decision\n(Session.state 上限更新)"]
+    Apply -- "approved" --> Book
+    Apply -- "DEFAULT_ROUTE\n(却下)" --> Replan["replan_notice\n(国内代替プラン案内)"]
 ```
 
----
-
-## 2. End-to-End Sequence Diagram
+## 2. End-to-End Sequence Diagram (Over-Budget Conversational Approval)
 
 ```mermaid
 sequenceDiagram
-    actor User as Employee / Manager
-    participant Runner as ADK Runner
-    participant Intake as intake_agent (gemini-4-neon)
-    participant Parallel as fetch_workcation_metrics + search_agent (gemini-4-hydrogen)
-    participant Calc as calculate_and_route (Python FunctionNode)
-    participant Gate as manager_approval_gate (RequestInput)
-    participant Book as booking_agent (gemini-4-hydrogen) + enforce_booking_guardrail
-    participant MCP as Travel SaaS MCP
+    actor User as 社員 / 上長
+    participant Runner as ADK Runner / Agent Runtime
+    participant Intake as intake_agent (mode='task')
+    participant Parallel as fetch_metrics + search_agent (McpToolset)
+    participant Calc as calculate_and_route (0-LLM Python)
+    participant Approval as manager_approval_task (mode='task')
+    participant Apply as apply_approval_decision
+    participant Book as booking_agent + enforce_booking_guardrail
+    participant MCP as Travel SaaS MCP Server (stdio)
 
-    User->>Runner: Submit travel & workcation request (e.g., Hawaii, 4 nights)
-    Runner->>Intake: Parse request (mode="task")
-    Intake-->>Runner: TripRequest (city="hawaii", nights=4, flight_class="economy", room_type="standard")
-    par Parallel Research Fan-Out
-        Runner->>Parallel: fetch_workcation_metrics(TripRequest)
-        Runner->>Parallel: search_agent(TripRequest) -> MCP search_flights / search_hotels
+    User->>Runner: 「ハワイで4泊、standardルームで合宿を手配して」
+    Runner->>Intake: 条件抽出
+    Intake-->>Runner: TripRequest(city='hawaii', nights=4)
+    par 並列リサーチ
+        Runner->>Parallel: fetch_workcation_metrics('hawaii')
+        Runner->>Parallel: search_agent -> MCP search_flights / search_hotels
     end
-    Parallel-->>Runner: JoinNode("join_research") merges metrics & CandidatePlan
-    Runner->>Calc: calculate_and_route(merged_research)
-    Note over Calc: Deterministic Python math: 130,000 + (28,000 * 4) = 242,000 JPY > 150,000 JPY
-    Calc-->>Runner: Event(route="needs_approval", state={"calculated_cost": ...})
-    Runner->>Gate: Invoke manager_approval_gate
-    Gate-->>User: Yield RequestInput(interrupt_id="manager_approval", response_schema=ApprovalDecision)
-    User->>Runner: Resume with ApprovalDecision(approved=True, approved_limit_jpy=250000)
-    Runner->>Gate: Re-run manager_approval_gate with ctx.resume_inputs
-    Gate-->>Runner: Event(route="approved", state={"approved_limit_jpy": 250000})
-    Runner->>Book: Invoke booking_agent
-    Book->>Book: enforce_booking_guardrail checks role, grade, and total_jpy <= state["approved_limit_jpy"]
+    Parallel-->>Runner: JoinNode で合流
+    Runner->>Calc: 130,000 + 28,000 * 4 = 242,000 円 (> 150,000 円)
+    Calc-->>Runner: Event(route='needs_approval', state_delta={'calculated_cost': ...})
+    Runner->>Approval: 上長承認タスク起動
+    Approval-->>User: 「合計 242,000 円は上限超過です。承認しますか？新しい上限額も教えてください」
+    User->>Runner: 「承認します。上限を 250,000 円に引き上げてください」
+    Approval-->>Runner: ApprovalDecision(approved=True, approved_limit_jpy=250000)
+    Runner->>Apply: Session.state['approved_limit_jpy'] = 250000 に更新
+    Apply-->>Runner: Event(route='approved')
+    Runner->>Book: 予約確定実行
+    Book->>Book: enforce_booking_guardrail (242,000 <= 250,000 OK)
     Book->>MCP: reserve_itinerary(...)
-    MCP-->>Book: {"status": "CONFIRMED", "reservation_id": "RES-..."}
-    Book-->>User: Final confirmed itinerary summary
+    MCP-->>Book: RES-HAW-0001
+    Book-->>User: 予約完了サマリー表示
 ```
 
----
+## 3. Production Hardening & Workshop Trade-offs
 
-## 3. Trust Boundary & Architectural Rationale
-
-### 3.1 Why External 3rd-Party Travel SaaS MCP Requires Client-Side `before_tool_callback`
-The Travel SaaS MCP server (`src/workcation_concierge/mcp_server.py`) represents an external, multi-tenant third-party booking service (such as a commercial GDS or travel portal). It validates inventory and pricing, but it has **no awareness of our company's internal HR grades, role hierarchy, or dynamic session approval state**. Relying on prompt instructions alone ("Do not book business class or exceed 150,000 JPY") is vulnerable to prompt injection or LLM hallucination. Therefore, `enforce_booking_guardrail` (`before_tool_callback`) enforces corporate compliance deterministically on the client side before the MCP tool call ever leaves the trust boundary.
-
-### 3.2 Why Cost Math and Routing Live in a Deterministic Python Node (`calculate_and_route`)
-LLMs should not be trusted with arithmetic or threshold comparisons that gate financial transactions. In Step 2, `calculate_and_route` is a pure Python `FunctionNode` (0 LLM tokens, 0 latency variance) that calls `calculate_itinerary_cost` deterministically, writes the exact breakdown into `Session.state["calculated_cost"]`, and emits `Event(route="auto_book")` when `total_jpy <= approved_limit_jpy` (default `150000`) or `Event(route="needs_approval")` when `total_jpy > approved_limit_jpy`.
-
-### 3.3 How `RequestInput` Updates `Session.state["approved_limit_jpy"]`
-When `calculate_and_route` routes to `needs_approval`, `manager_approval_gate` (`FunctionNode(..., rerun_on_resume=True)`) yields `RequestInput(interrupt_id="manager_approval", response_schema=ApprovalDecision)`. ADK pauses the workflow and emits an `adk_request_input` function call event. When the manager responds with `ApprovalDecision(approved=True, approved_limit_jpy=250000, approver_comment="...")`, `manager_approval_gate` resumes, reads `ctx.resume_inputs["manager_approval"]`, and emits:
-```python
-Event(
-    output=payload,
-    route="approved",
-    state={"approved_limit_jpy": new_limit, "approval_decision": decision_dict},
-)
-```
-When `booking_agent` subsequently calls `reserve_itinerary`, `enforce_booking_guardrail` reads the updated `tool_context.state["approved_limit_jpy"]` (`250000`) and allows the `242,000 JPY` Hawaii standard-grade booking while still blocking any `suite` or `business` class upgrade for `user_role="member"`.
-
----
-
-## 4. Tool & Session State Contracts
-
-### 4.1 Session State Keys
-
-| State Key | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `user_role` | `str` | `"member"` | Employee role (`"member"` or `"executive"`). Non-executives cannot book `business` flights or `suite` hotels. |
-| `approved_limit_jpy` | `int` | `150000` | Maximum allowed total itinerary cost in JPY. Dynamically raised by `manager_approval_gate` upon manager approval. |
-| `trip_request` | `dict` | `{}` | Validated `TripRequest` dictionary stored by the workflow. |
-| `calculated_cost` | `dict` | `{}` | Exact cost breakdown (`flight_jpy`, `hotel_total_jpy`, `total_jpy`) computed by `calculate_and_route`. |
-| `approval_decision` | `dict` | `{}` | Manager approval payload recorded by `manager_approval_gate`. |
-
-### 4.2 MCP & Deterministic Catalog Tools (`src/workcation_concierge/mcp_server.py`)
-
-| Tool Name | Inputs | Output Schema | Behavior & Catalog Coverage |
-| :--- | :--- | :--- | :--- |
-| `search_flights` | `city: str` | `{"status": "ok" \| "error", "city": str, "flights": list[dict]}` | Returns economy and business round-trip options for `sapporo`, `okinawa`, `hawaii`, `san_francisco`. |
-| `search_hotels` | `city: str` | `{"status": "ok" \| "error", "city": str, "hotels": list[dict]}` | Returns standard and suite hotels with nightly JPY rates and Wi-Fi speeds. |
-| `fetch_workcation_metrics` | `city: str` | `{"status": "ok" \| "error", "city": str, "wifi_mbps": int, "coworking_spaces": int, "timezone_offset": str}` | Returns deterministic workcation readiness metrics (e.g., network speed >= 50 Mbps). |
-| `calculate_itinerary_cost` | `city: str, nights: int, flight_class: str = "economy", room_type: str = "standard"` | `{"status": "ok" \| "error", "city": str, "nights": int, "flight_jpy": int, "hotel_per_night_jpy": int, "hotel_total_jpy": int, "total_jpy": int}` | Deterministic Python arithmetic: `sapporo` (2 nights = 59,000 JPY), `okinawa` (3 nights = 93,000 JPY), `hawaii` (4 nights = 242,000 JPY), `san_francisco` (4 nights = 320,000 JPY). |
-| `reserve_itinerary` | `city: str, nights: int, flight_class: str, room_type: str, total_jpy: int, purpose: str = "workcation"` | `{"status": "CONFIRMED" \| "BLOCKED", "reservation_id": str, ...}` | Protected by `enforce_booking_guardrail` (`before_tool_callback`). |
-
----
-
-## 5. Acceptance Scenarios & Test Mapping
-
-1. **Catalog & Deterministic Math (`tests/unit/test_mcp_catalog.py`)**:
-   - `sapporo` 2 nights (`economy` + `standard`) equals `59,000 JPY` (`<= 150,000 JPY`).
-   - `okinawa` 3 nights (`economy` + `standard`) equals `93,000 JPY` (`<= 150,000 JPY`).
-   - `hawaii` 4 nights (`economy` + `standard`) equals `242,000 JPY` (`> 150,000 JPY`).
-2. **Client-Side Callback Guardrail (`tests/unit/test_guardrails.py`)**:
-   - `room_type="suite"` or `flight_class="business"` is 100% blocked for `user_role="member"`.
-   - `total_jpy > state["approved_limit_jpy"]` (default `150,000 JPY`) is 100% blocked.
-   - Raising `state["approved_limit_jpy"]` to `250,000 JPY` allows a `242,000 JPY` `standard` + `economy` booking to succeed.
-3. **Workflow Nodes & HITL Gate (`tests/unit/test_workflow_nodes.py`)**:
-   - `calculate_and_route` returns `Event(route="auto_book")` for `<= 150,000 JPY` and `Event(route="needs_approval")` for `> 150,000 JPY`.
-   - `manager_approval_gate` yields `RequestInput` when `ctx.resume_inputs` is empty and emits `Event(route="approved", state={"approved_limit_jpy": ...})` when approved.
-4. **End-to-End Agent & Workflow Wiring (`tests/integration/test_agents_wiring.py`)**:
-   - `step1_basic_agent.agent.root_agent`, `step2_starter.agent.root_agent`, and `step2_workflow_agent.agent.root_agent` initialize cleanly and execute deterministic workflow paths via `InMemoryRunner`.
-
----
-
-## 6. Local Setup & Verification
-
-```bash
-gcloud auth application-default login
-cp .env_example .env
-uv sync --dev --index https://pypi.org/simple --python /usr/bin/python3.13
-uv run --no-sync --python /usr/bin/python3.13 pytest
-uv run --no-sync --python /usr/bin/python3.13 ruff format --check .
-uv run --no-sync --python /usr/bin/python3.13 ruff check .
-uv run --no-sync --python /usr/bin/python3.13 ty check
-```
+- **Server-side Cost Verification (`guardrails.py`)**: `enforce_booking_guardrail` does not trust LLM-supplied `args["total_jpy"]`; it recalculates the authoritative cost via `calculate_itinerary_cost(...)` and blocks if `max(claimed, recalculated) > approved_limit_jpy`.
+- **Remote MCP Separation (`mcp_client.py` / `mcp_server.py`)**: Uses local `stdio` by default for zero-friction workshop execution, and automatically switches to `StreamableHTTPConnectionParams` when `MCP_SERVER_URL` is configured (with `stateless_http=True` and Cloud Run `TransportSecuritySettings` in `mcp_server.py`).
+- **HITL Separation of Duties**: The workshop uses conversational `mode="task"` (`manager_approval_task`) so attendees can complete the full approval loop solo in `adk web` and Cloud Console Playground. In production multi-tenant systems, pair ADK `RequestInput` with an authenticated external approval workflow (e.g., Slack / approval API with approver IAM verification) so the requester cannot self-approve.

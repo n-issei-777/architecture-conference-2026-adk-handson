@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Client-side deterministic guardrails (before_tool_callback) for Travel SaaS MCP."""
+"""Client-side deterministic guardrail (before_tool_callback) for Travel SaaS MCP."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from google.adk.tools import BaseTool, ToolContext
+
+from workcation_concierge.mcp_server import calculate_itinerary_cost
 
 # デフォルトの自己承認予算上限 (150,000円)
 DEFAULT_APPROVED_LIMIT_JPY = 150_000
@@ -29,66 +31,44 @@ def enforce_booking_guardrail(
     args: dict[str, Any],
     tool_context: ToolContext,
 ) -> dict[str, Any] | None:
-    """Deterministic `before_tool_callback` blocking policy-violating reservations.
-
-    Why this callback is required at the client trust boundary:
-    The external Travel SaaS MCP (`reserve_itinerary`) knows inventory and prices,
-    but has zero visibility into internal corporate grades (`user_role`) or dynamic
-    session approval limits (`Session.state["approved_limit_jpy"]`).
-
-    Rules enforced 100% deterministically before tool execution:
-    1. Only `reserve_itinerary` calls are inspected; read-only search tools pass through.
-    2. For `user_role == "member"` (default), `flight_class == "business"` or
-       `room_type == "suite"` is strictly blocked.
-    3. If `total_jpy > state.get("approved_limit_jpy", 150000)`, the booking is blocked
-       until the manager approval gate raises `state["approved_limit_jpy"]`.
-
-    Returns:
-        `None` to allow the tool call to proceed, or a structured `{"status": "BLOCKED", ...}`
-        dictionary to short-circuit execution.
-    """
-    # 予約確定ツール以外はそのまま通過
+    """予約確定ツール (reserve_itinerary) の実行直前に社内規定を検証するコールバック."""
     if not tool.name.endswith("reserve_itinerary"):
-        return None
+        return None  # 検索系ツールはそのまま通過
 
-    state = tool_context.state
-    user_role = str(state.get("user_role", "member")).strip().lower()
-    approved_limit_jpy = int(state.get("approved_limit_jpy", DEFAULT_APPROVED_LIMIT_JPY))
+    print(f"[Callback検査] tool={tool.name}, args={args}")
+    role = str(tool_context.state.get("user_role", "member")).lower()
+    limit = int(tool_context.state.get("approved_limit_jpy", DEFAULT_APPROVED_LIMIT_JPY))
+    flight_class = str(args.get("flight_class", "economy")).lower()
+    room_type = str(args.get("room_type", "standard")).lower()
 
-    flight_class = str(args.get("flight_class", "economy")).strip().lower()
-    room_type = str(args.get("room_type", "standard")).strip().lower()
-    total_jpy = int(args.get("total_jpy", 0))
-
-    # 1. 役職グレード規定の検証 (一般社員はビジネスクラス・スイートルーム不可)
-    if user_role != "executive" and (flight_class == "business" or room_type == "suite"):
+    # 1. 一般社員によるスイートルーム・ビジネスクラス予約をブロック
+    if role != "executive" and (room_type == "suite" or flight_class == "business"):
         return {
             "status": "BLOCKED",
             "violation_type": "GRADE_POLICY_VIOLATION",
-            "user_role": user_role,
-            "requested_flight_class": flight_class,
-            "requested_room_type": room_type,
-            "message": (
-                "Booking blocked by corporate policy guardrail: "
-                f"role '{user_role}' is only permitted to book 'economy' flights "
-                "and 'standard' rooms (requested: "
-                f"flight_class='{flight_class}', room_type='{room_type}')."
-            ),
+            "message": "社内規定違反: 一般社員はエコノミー・スタンダードのみ予約可能。",
         }
 
-    # 2. 承認予算上限の検証 (上限超過時は上長承認ゲートによる引き上げが必須)
-    if total_jpy > approved_limit_jpy:
+    # 2. LLMの申告額を鵜呑みにせずサーバー側で再計算した金額で上限を検証
+    claimed_total = int(args.get("total_jpy", 0))
+    recalculated = calculate_itinerary_cost(
+        city=str(args.get("city", "")),
+        nights=int(args.get("nights", 0)),
+        flight_class=flight_class,
+        room_type=room_type,
+    )
+    verified_total = (
+        max(claimed_total, int(recalculated["total_jpy"]))
+        if recalculated.get("status") == "ok"
+        else claimed_total
+    )
+    if verified_total > limit:
         return {
             "status": "BLOCKED",
             "violation_type": "BUDGET_LIMIT_EXCEEDED",
-            "total_jpy": total_jpy,
-            "approved_limit_jpy": approved_limit_jpy,
-            "message": (
-                "Booking blocked by corporate budget guardrail: "
-                f"total_jpy ({total_jpy:,} JPY) exceeds current approved_limit_jpy "
-                f"({approved_limit_jpy:,} JPY). Manager approval is required to raise "
-                "Session.state['approved_limit_jpy']."
-            ),
+            "approved_limit_jpy": limit,
+            "total_jpy": verified_total,
+            "message": f"予算上限超過: 合計 {verified_total:,} 円が上限 {limit:,} 円を超過。",
         }
 
-    # すべてのガードレール条件を満たした場合は None を返してツール実行を許可
-    return None
+    return None  # None を返した場合のみ MCP 予約ツールを実行

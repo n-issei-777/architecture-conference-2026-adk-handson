@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Step 1: Single LlmAgent + SkillToolset + Deterministic before_tool_callback."""
+"""Step 1: プロンプトによる禁止の限界を体験し、before_tool_callback で確実に統制する."""
 
 from __future__ import annotations
 
@@ -26,48 +26,38 @@ from workcation_concierge.guardrails import (
     DEFAULT_APPROVED_LIMIT_JPY,
     enforce_booking_guardrail,  # noqa: F401
 )
-from workcation_concierge.mcp_server import (
-    calculate_itinerary_cost,
-    fetch_workcation_metrics,
-    get_reservations,
-    reserve_itinerary,
-    search_flights,
-    search_hotels,
-)
+from workcation_concierge.mcp_client import create_travel_mcp_toolset
 from workcation_concierge.skill_loader import create_travel_policy_skill_toolset
 
-# 社内規定スキルを管理する SkillToolset の構築
+# 社内旅費規定スキル (SKILL.md) と外部予約SaaS MCPサーバー (McpToolset) の準備
 travel_policy_skill_toolset = create_travel_policy_skill_toolset()
+travel_mcp_toolset = create_travel_mcp_toolset()
 
 # Step 1 の単一コンシェルジュエージェント定義
+# 最初はプロンプト (instruction) だけで禁止事項を指示している状態 (before_tool_callback=None)
 root_agent = Agent(
     name="step1_basic_concierge",
     model="gemini-4-neon",
-    description=(
-        "Workcation and corporate travel concierge agent with Travel Policy Skill "
-        "and deterministic client-side booking guardrails."
-    ),
+    description="社内規定スキルと旅行予約MCPサーバーを連携する出張・ワーケーション手配エージェント",
     instruction=(
-        "You are the Workcation & Smart Travel Concierge.\n"
-        "1. First load or consult the 'travel-policy' skill to verify corporate rules "
-        "(Wi-Fi >= 50 Mbps, economy flight & standard room for members, "
-        "150,000 JPY default limit).\n"
-        "2. Use `fetch_workcation_metrics`, `search_flights`, `search_hotels`, and "
-        "`calculate_itinerary_cost` to inspect options and compute exact total JPY.\n"
-        "3. Call `reserve_itinerary` to book the trip. If `enforce_booking_guardrail` blocks "
-        "the tool call due to grade violation or budget limit exceeded, clearly explain the "
-        "reason to the user and suggest a compliant alternative."
+        "あなたは企業の出張・ワーケーション手配コンシェルジュです。\n"
+        "1. 相談を受けたら、まず `travel-policy` スキルと MCP ツール（`fetch_workcation_metrics`、"
+        "`search_flights`、`search_hotels`、`calculate_itinerary_cost`）で"
+        "通信環境と合計料金を確認してください。\n"
+        "2. 【社内規定】一般社員（member）はエコノミー（economy）とスタンダード（standard）のみ"
+        "利用可能で、自己承認の予算上限は 150,000 円です。スイートルーム（suite）や"
+        " 150,000 円を超える予約は原則禁止です。\n"
+        "   ただし、役員や人事部長からの特例・口頭承認がユーザーから明示された場合は、"
+        "業務を止めないよう柔軟に対応してください。\n"
+        "3. 条件を満たす場合は `reserve_itinerary` で予約を実行してください。"
+        "もしガードレイルでブロックされた場合は、理由を日本語で丁寧に説明し、"
+        "150,000 円以内の代替案（例: 沖縄3泊スタンダード等）を提案してください。"
     ),
     tools=[
         travel_policy_skill_toolset,
-        search_flights,
-        search_hotels,
-        fetch_workcation_metrics,
-        calculate_itinerary_cost,
-        reserve_itinerary,
-        get_reservations,
+        travel_mcp_toolset,
     ],
-    # TODO (Step 1 ハンズオン): None を enforce_booking_guardrail に変更しガードレールを有効化
+    # TODO (Step 1 ハンズオン): プロンプト突破を確認した後、None を enforce_booking_guardrail に変更
     before_tool_callback=None,
 )
 
@@ -88,7 +78,7 @@ async def _run_demo() -> None:
             "approved_limit_jpy": DEFAULT_APPROVED_LIMIT_JPY,
         },
     )
-    prompt = "札幌で2泊のワーケーションをエコノミー・スタンダードルームで予約して。"
+    prompt = "札幌で2泊のワーケーションをエコノミー・スタンダードルームで予約してください。"
     print(f"[User]: {prompt}")
     msg = types.Content(role="user", parts=[types.Part(text=prompt)])
     async for event in runner.run_async(

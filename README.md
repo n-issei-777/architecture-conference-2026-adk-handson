@@ -1,163 +1,109 @@
 # Architecture Conference 2026 ハンズオン: Workcation & Smart Travel Concierge (Google ADK 2.0)
 
-本リポジトリは、Architecture Conference 2026 ワークショップ向けのハンズオン教材です。
-Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)** および **`google-agents-cli` (`v1.15.0`)** を用い、単一 LLM エージェントによるプロトタイプ（Step 1）から、決定論的な Python ノード・並列実行・Human-in-the-Loop (HITL) 承認ゲートを統合したハイブリッド `Workflow` アーキテクチャ（Step 2）、そして評価とデプロイ（Step 3）までを段階的に構築・検証します。
+本リポジトリは、Architecture Conference 2026 ワークショップ **「Agent Development Kit（ADK）2.0 と Google Cloud で学ぶ！AI エージェント開発」** のハンズオン教材です。
 
-システムアーキテクチャの詳細設計やシーケンス図については [doc/design.md](doc/design.md) を参照してください。
+Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)**、コーディングエージェント **Antigravity (`agy`)**、および **`google-agents-cli` (`v1.15.0`)** を用い、以下の 4 ステップで本番グレードの AI エージェント開発を段階的に体験します。
+
+1. **Step 0 (`step0_minimal_agent`)**: 約 25 行の最小構成エージェントで `Agent`・`SessionService`・`Runner` の基本構造を学ぶ
+2. **Step 1 (`step1_basic_agent`)**: 本物の `McpToolset`（stdio 接続）と `SkillToolset` を連携し、「プロンプトによる禁止が突破される失敗」を体験した上で 20 行の `before_tool_callback` による決定論的遮断を実装する
+3. **Step 2 (`step2_starter` / `step2_workflow_agent`)**: `agy`（またはエディタ）で並列調査・0-LLM 確定金額分岐・日本語対話による上長承認タスク（`mode="task"` + `Session.state` 更新）を備えた ADK 2.0 `Workflow` を構築する
+4. **Step 3 (`eval/` & `Dockerfile`)**: `agents-cli eval run` で経路評価を実行し、`agents-cli deploy` で Agent Runtime へデプロイして Google Cloud コンソールの **プレイグラウンド（Playground）** 画面からクラウド上のエージェントと対話する
+
+システムアーキテクチャの詳細設計やシーケンス図は [doc/design.md](doc/design.md) を参照してください。
 
 ---
 
 ## 1. ディレクトリ構成
 
-`uv run adk web .` をリポジトリルートで実行した際に各ステップのエージェントがそのまま検出されるよう、トップレベルにエージェントパッケージを配置しています。
-
 ```text
 .
 ├── .env_example                         # Vertex AI ADC 環境変数テンプレート
-├── LICENSE                              # Apache 2.0 ライセンス
+├── agents-cli-manifest.yaml             # agents-cli v1.15 デプロイ定義
+├── Dockerfile                           # Agent Runtime コンテナビルド定義
 ├── pyproject.toml                       # Python 3.13 / uv / ruff / pytest / ty 設定
-├── README.md                            # ハンズオン手順・リポジトリ概要（本ファイル）
 ├── doc/
-│   └── design.md                        # アーキテクチャ設計書・Mermaid 図・状態契約
+│   └── design.md                        # アーキテクチャ設計書・Mermaid 図
 ├── docs/
-│   ├── index.html                       # Web 公開用インタラクティブ ハンズオンガイド (Codelab 形式)
-│   └── qwiklabs_setup_guide.md          # Qwiklabs クラスルーム構築・運営ガイド
+│   ├── index.html                       # Web 公開用ハンズオン手順書 (Codelab 形式)
+│   └── images/                          # Cloud Shell / adk web / Workflow / Playground 図解
 ├── skills/
-│   └── travel-policy/
-│       └── SKILL.md                     # 社内出張・ワーケーション規定スキル (SkillToolset 用)
-├── src/
-│   └── workcation_concierge/
-│       ├── __init__.py
-│       ├── schemas.py                   # Pydantic v2 入出力スキーマ (TripRequest 等)
-│       ├── mcp_server.py                # Travel SaaS MCP サーバー & カタログ計算関数
-│       ├── guardrails.py                # before_tool_callback による決定論的ガードレール
-│       └── skill_loader.py              # ADK SkillToolset ローダー
-├── step1_basic_agent/
-│   ├── __init__.py
-│   └── agent.py                         # Step 1: 単一 LlmAgent + SkillToolset + Callback
-├── step2_starter/
-│   ├── __init__.py
-│   └── agent.py                         # Step 2 ハンズオン用スターターテンプレート (TODO 付き)
-├── step2_workflow_agent/
-│   ├── __init__.py
-│   └── agent.py                         # Step 2 完成版: ADK 2.0 Hybrid Workflow
+│   └── travel-policy/SKILL.md           # 社内旅費規定スキル (SkillToolset 用)
+├── src/workcation_concierge/
+│   ├── schemas.py                       # Pydantic v2 入出力スキーマ
+│   ├── mcp_server.py                    # Travel SaaS MCP サーバー (FastMCP / stdio & StreamableHTTP)
+│   ├── mcp_client.py                    # McpToolset (stdio / StreamableHTTP 切替) 接続ヘルパー
+│   ├── guardrails.py                    # before_tool_callback 決定論的ガードレイル (再計算検証付)
+│   └── skill_loader.py                  # ADK SkillToolset ローダー
+├── step0_minimal_agent/                 # Step 0: 最小構成エージェント (基礎理解用)
+├── step1_basic_agent/                   # Step 1: プロンプト突破体験 & Callback 配線演習
+├── step2_starter/                       # Step 2: Workflow 実装スターター (TODO 2箇所)
+├── step2_workflow_agent/                # Step 2 完成版 + Agent Runtime プレイグラウンド用アダプタ
 ├── eval/
-│   └── workcation_eval.json             # Step 3: agents-cli eval 用評価データセット
-└── tests/
-    ├── unit/
-    │   ├── test_mcp_catalog.py          # フライト・ホテル検索・精算計算の単体テスト
-    │   ├── test_guardrails.py           # before_tool_callback ガードレールの単体テスト
-    │   └── test_workflow_nodes.py       # Workflow 関数ノード・HITL 承認ゲートの単体テスト
-    └── integration/
-        └── test_agents_wiring.py        # Step 1 / Step 2 エージェント統合・配線テスト
+│   └── workcation_eval.json             # Step 3: 自動評価データセット
+└── tests/                               # 単体テスト・結合テスト (全 19 件)
 ```
 
 ---
 
-## 2. クイックスタート (Vertex AI ADC & uv)
+## 2. セットアップ (Cloud Shell / ローカル共通)
 
-本ハンズオンでは、Gemini API キーではなく **Google Cloud Vertex AI の Application Default Credentials (ADC)** を使用します。また、モデルには高度な推論を担う `gemini-4-neon`（Step 1 単一エージェントおよび Step 2 対話ヒアリング）と、高速・高効率なエージェント実行を担う `gemini-4-hydrogen`（候補検索・予約実行）を使用します。
-
-### 2.1 Google Cloud 認証と環境変数の設定
+本教材は API キーを使用せず、**Vertex AI Application Default Credentials (ADC)** と `global` エンドポイント上の `gemini-4-neon` / `gemini-4-hydrogen` を使用します。
 
 ```bash
-gcloud auth application-default login
+export GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
+export GOOGLE_CLOUD_LOCATION=global
+export GOOGLE_GENAI_USE_VERTEXAI=TRUE
+
 cp .env_example .env
-```
+sed -i "s/your-gcp-project-id/${GOOGLE_CLOUD_PROJECT}/g" .env
 
-`.env` ファイルをエディタで開き、ご自身の Google Cloud プロジェクト ID を設定してください（`gemini-4-hydrogen` / `gemini-4-neon` は Vertex AI の `global` エンドポイントを使用します）。
-
-```ini
-GOOGLE_GENAI_USE_VERTEXAI=TRUE
-GOOGLE_CLOUD_PROJECT=your-gcp-project-id
-GOOGLE_CLOUD_LOCATION=global
-```
-
-### 2.2 依存関係のインストールとテスト実行
-
-Python 3.13 と `uv`（明示的な PyPI インデックス指定）を使用して仮想環境を同期します。
-
-```bash
-uv sync --dev --index https://pypi.org/simple --python /usr/bin/python3.13
-```
-
-単体テスト・結合テスト、および静的解析（`ruff` / `ty`）を実行して環境が正常であることを確認します。
-
-```bash
-uv run --no-sync --python /usr/bin/python3.13 pytest
-uv run --no-sync --python /usr/bin/python3.13 ruff format --check .
-uv run --no-sync --python /usr/bin/python3.13 ruff check .
-uv run --no-sync --python /usr/bin/python3.13 ty check
+uv sync --dev --index https://pypi.org/simple --python python3.13
+uv run pytest -v
 ```
 
 ---
 
-## 3. ハンズオン ステップ別コマンド
+## 3. 各ステップの実行コマンド
 
-### Step 1: 単一エージェント + Skills + 決定論的 Callback ガードレール
-
-[step1_basic_agent/agent.py](step1_basic_agent/agent.py) では、`gemini-4-neon` を用いた単一エージェントに以下の3つを組み合わせます（初期状態では `before_tool_callback=None` になっており、ハンズオンで `enforce_booking_guardrail` に書き換えてガードレールの有無を比較体験します）。
-1. **SkillToolset** ([skills/travel-policy/SKILL.md](skills/travel-policy/SKILL.md)): 社内の出張・ワーケーション規定（通信速度 50 Mbps 以上、一般社員のスイート・ビジネスクラス禁止、150,000 円上限など）をオンデマンドで注入。
-2. **Travel SaaS MCP ツール群** ([src/workcation_concierge/mcp_server.py](src/workcation_concierge/mcp_server.py)): フライト検索・ホテル検索・予約実行ツール。
-3. **`before_tool_callback`** ([src/workcation_concierge/guardrails.py](src/workcation_concierge/guardrails.py)): 外部 SaaS である MCP サーバーにリクエストが送信される直前に、クライアント側でグレード違反や予算超過（`total_jpy > state["approved_limit_jpy"]`）を 100% ブロック。
-
-#### Web UI で体験する
+### Step 0 & Step 1 & Step 2: ADK Web UI の起動
 ```bash
-uv run --no-sync --python /usr/bin/python3.13 adk web .
+uv run adk web . --port 8000
 ```
-ブラウザで `step1_basic_agent` を選択し、以下のプロンプトを試してください。
-- 通常予算内（札幌 2泊 = 59,000 円）: `札幌で2泊のワーケーションをエコノミー・スタンダードルームで予約して`
-- 規定違反ブロック（スイートルーム指定）: `沖縄で3泊、スイートルームに泊まるワーケーションを予約して`
-- 予算超過ブロック（ハワイ 4泊 = 242,000 円 > 150,000 円）: `ハワイで4泊のワーケーションを予約して`
+- **Step 0**: 左上のプルダウンで `step0_minimal_agent` を選択し、「札幌で2泊する場合のWi-Fi速度と費用を教えて」→「もし3泊に延ばしたらいくらになる？」と続けて質問して `Events` / `State` タブを確認します。
+- **Step 1**: `step1_basic_agent` を選択し、口頭承認を装うスイートルーム予約プロンプトでプロンプト突破を確認した後、`step1_basic_agent/agent.py` 61 行目の `before_tool_callback=None` を `enforce_booking_guardrail` に変更して 100% ブロックを確認します。
+- **Step 2**: `uv run agents-cli setup` 実行後、`step2_starter/agent.py` の 2 つの `TODO`（118 行目の分岐と 243 行目の `Workflow` 結線）を `agy` またはエディタで実装し、札幌 2 泊（自動予約）とハワイ 4 泊（日本語チャットでの上長承認 → `Session.state` 上限更新 → 予約完了）を確認します。
 
-#### CLI デモスクリプトで体験する
+### Step 3: 自動評価と Agent Runtime デプロイ・プレイグラウンド確認
 ```bash
-uv run --no-sync --python /usr/bin/python3.13 -m step1_basic_agent.agent
-```
+uv run pytest -v
+uv run ruff check .
+uv run ty check
 
----
+# 経路 (Trajectory) 自動評価
+uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workcation_eval.json
 
-### Step 2: ADK 2.0 Hybrid `Workflow` による確定制御と Human-in-the-Loop 承認
-
-Step 1 の単一エージェントでは、ハワイ（242,000 円）のような予算超過プランを柔軟に上長承認へ回し、`Session.state["approved_limit_jpy"]` を動的に引き上げて予約を完了させるフローを確率的なプロンプトだけで制御するのは困難です。
-
-Step 2 では、ADK 2.0 の `Workflow` グラフを用いて以下を実装します。
-- ハンズオン作業用スターター: [step2_starter/agent.py](step2_starter/agent.py)
-- 完成版リファレンス実装: [step2_workflow_agent/agent.py](step2_workflow_agent/agent.py)
-
-#### ワークフロー構成
-1. **`intake_agent`** (`mode="task"`, `output_schema=TripRequest`, `gemini-4-neon`): ユーザーの要望から都市・泊数・クラスを高度な推論で構造化抽出。
-2. **並列 Fan-Out + `JoinNode("join_research")`**:
-   - `fetch_workcation_metrics`: Python 関数ノードで対象都市の Wi-Fi 速度とコワーキング環境を取得（0 LLM トークン）。
-   - `search_agent` (`mode="single_turn"`, `output_schema=CandidatePlan`, `gemini-4-hydrogen`): 最安のフライト・ホテル候補を高速抽出。
-3. **`calculate_and_route`** (決定論的 Python `FunctionNode`): LLM に計算を任せず Python で正確な合計金額を算出し、`<= 150,000 JPY` なら `route="auto_book"`、`> 150,000 JPY` なら `route="needs_approval"` へ分岐。
-4. **`manager_approval_gate`** (`RequestInput` HITL ゲート): 予算超過時にワークフローを一時停止し、上長が承認すると `Session.state["approved_limit_jpy"]` を新しい承認額（例: 250,000 円）に更新して `booking_agent` へルーティング。
-5. **`booking_agent`** (`gemini-4-hydrogen` + `enforce_booking_guardrail`): 更新された `approved_limit_jpy` の範囲内で安全に `reserve_itinerary` を実行。
-
-#### Web UI で Step 2 ワークフローを実行する
-```bash
-uv run --no-sync --python /usr/bin/python3.13 adk web .
-```
-ブラウザで `step2_workflow_agent`（または実装後の `step2_starter`）を選択し、札幌（自動予約ルート）とハワイ（上長承認 HITL ルート）の両方を試してください。
-
----
-
-### Step 3: 継続的評価 (`eval`) と Reasoning Engine / Cloud Run デプロイ
-
-[eval/workcation_eval.json](eval/workcation_eval.json) には、予算内の自動予約シナリオ、グレード違反のブロックシナリオ、および予算超過時の上長承認エスカレーションシナリオが含まれています。
-
-#### 1. ADK CLI / agents-cli による評価の実行
-```bash
-uv run --no-sync --python /usr/bin/python3.13 adk eval step2_workflow_agent eval/workcation_eval.json
-uv run --no-sync --python /usr/bin/python3.13 agents-cli eval run --app-name step2_workflow_agent --dataset eval/workcation_eval.json
-```
-
-#### 2. Vertex AI Agent Runtime (Agent Engine) / Cloud Run へのデプロイ（参考コマンド）
-```bash
-uv run --no-sync --python /usr/bin/python3.13 agents-cli deploy \
+# Agent Runtime へのデプロイ
+uv run agents-cli deploy \
   --deployment-target agent_runtime \
   --project "${GOOGLE_CLOUD_PROJECT}" \
   --region us-central1 \
   --env-vars "GOOGLE_CLOUD_LOCATION=global" \
   --service-name "workcation-concierge-workflow"
 ```
+デプロイ完了後、Google Cloud コンソール上部の検索バーで **`Deployments`** を検索し、対象リソースの **「プレイグラウンド」タブ** からクラウド上のエージェントと直接会話できます。
+
+---
+
+## 4. 発展: MCP サーバーを Cloud Run へ分離展開する (`StreamableHTTP`)
+
+本編のハンズオンではゼロ設定で動作するローカル `stdio` 接続を使用していますが、`mcp_server.py` と `mcp_client.py` は本番向けの **リモート `StreamableHTTP` 接続** にも対応しています。
+
+```bash
+# 1. MCP サーバーを Cloud Run へ単体起動 (PORT 指定で自動的に streamable-http 起動)
+MCP_TRANSPORT=streamable-http PORT=8080 uv run python -m workcation_concierge.mcp_server
+
+# 2. 接続先 URL を環境変数に設定すると McpToolset が自動的に StreamableHTTP へ切替
+export MCP_SERVER_URL="https://<your-cloud-run-service>.a.run.app/mcp"
+```
+
+本番運用では Cloud Run に `--no-allow-unauthenticated` で展開し、Agent Runtime のサービスアカウントへ `roles/run.invoker` を付与して ID Token 認証で接続します。

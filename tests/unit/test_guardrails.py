@@ -133,3 +133,25 @@ def test_booking_succeeds_after_approved_limit_raised() -> None:
         tool_context=_as_ctx(ctx),
     )
     assert allowed_res is None
+
+
+def test_spoofed_low_total_jpy_is_recalculated_and_blocked() -> None:
+    # LLM が total_jpy を過少申告 (50,000円) してもサーバー側再計算 (242,000円) で遮断することを検証
+    ctx = _StubToolContext(state={"user_role": "member", "approved_limit_jpy": 150000})
+    tool = _as_tool(_StubTool(name="reserve_itinerary"))
+
+    blocked_res = enforce_booking_guardrail(
+        tool=tool,
+        args={
+            "city": "hawaii",
+            "nights": 4,
+            "flight_class": "economy",
+            "room_type": "standard",
+            "total_jpy": 50000,
+        },
+        tool_context=_as_ctx(ctx),
+    )
+    assert blocked_res is not None
+    assert blocked_res["status"] == "BLOCKED"
+    assert blocked_res["violation_type"] == "BUDGET_LIMIT_EXCEEDED"
+    assert blocked_res["total_jpy"] == 242000

@@ -1,0 +1,9 @@
+#!include:.gitignore
+
+.git
+.gitignore
+.gcloudignore
+/docs/
+/doc/
+/tests/
+/eval/

@@ -22,87 +22,74 @@ from pydantic import BaseModel, Field
 
 
 class TripRequest(BaseModel):
-    """Structured travel and workcation request extracted from user input."""
+    """ユーザー入力から抽出する出張・ワーケーション希望条件."""
 
-    city: str = Field(
-        description="Destination city slug (e.g., 'sapporo', 'okinawa', 'hawaii', 'san_francisco')."
-    )
+    city: str = Field(description="行き先都市 ('sapporo', 'okinawa', 'hawaii', 'san_francisco')")
     nights: int = Field(
         default=2,
         ge=1,
         le=30,
-        description="Number of hotel nights.",
+        description="宿泊数 (泊)",
     )
     flight_class: Literal["economy", "business"] = Field(
         default="economy",
-        description="Requested flight class ('economy' or 'business').",
+        description="航空機クラス ('economy' または 'business')",
     )
     room_type: Literal["standard", "suite"] = Field(
         default="standard",
-        description="Requested hotel room grade ('standard' or 'suite').",
+        description="客室グレード ('standard' または 'suite')",
     )
     purpose: str = Field(
         default="workcation",
-        description="Business or workcation trip purpose.",
+        description="出張・合宿の目的",
     )
 
 
 class CandidatePlan(BaseModel):
-    """Candidate flight and hotel option selected by the search specialist."""
+    """検索エージェントが選定したフライト・ホテル候補."""
 
-    city: str = Field(description="Normalized destination city slug.")
-    nights: int = Field(default=2, ge=1, description="Number of nights.")
-    flight_code: str = Field(
-        default="NH-051",
-        description="Selected flight identifier.",
-    )
+    city: str = Field(description="正規化済みの都市コード")
+    nights: int = Field(default=2, ge=1, description="宿泊数 (泊)")
+    flight_code: str = Field(default="NH-051", description="選定した便名")
     flight_class: Literal["economy", "business"] = Field(
         default="economy",
-        description="Selected flight cabin class.",
+        description="選定した航空機クラス",
     )
     hotel_name: str = Field(
         default="Workcation Hub Hotel",
-        description="Selected hotel property name.",
+        description="選定したホテル名",
     )
     room_type: Literal["standard", "suite"] = Field(
         default="standard",
-        description="Selected hotel room grade.",
+        description="選定した客室グレード",
     )
-    notes: str = Field(
-        default="",
-        description="Brief summary of selected flight and hotel options.",
-    )
+    notes: str = Field(default="", description="候補プランの補足メモ")
 
 
 class ApprovalDecision(BaseModel):
-    """Manager approval response payload for Human-in-the-Loop (RequestInput)."""
+    """上長承認タスクノードで受け取る承認判断結果."""
 
-    approved: bool = Field(description="True if the manager approves the budget override.")
+    approved: bool = Field(description="予算超過プランを承認する場合は True、却下する場合は False")
     approved_limit_jpy: int = Field(
         default=250000,
         ge=0,
-        description="Updated maximum budget limit in JPY granted by the manager.",
+        description="上長が承認した新しい予算上限額 (円)。承認時は合計金額以上 (例: 250000) を指定",
     )
     approver_comment: str = Field(
         default="",
-        description="Reason or condition recorded by the approving manager.",
+        description="上長からの承認・却下コメント",
     )
 
 
 class BookingResult(BaseModel):
-    """Final itinerary reservation outcome."""
+    """最終的な予約実行結果."""
 
-    status: Literal["CONFIRMED", "BLOCKED", "NEEDS_REPLAN"] = Field(
-        description="Final reservation status."
-    )
-    reservation_id: str = Field(
-        default="",
-        description="Confirmation identifier when status is CONFIRMED.",
-    )
-    city: str = Field(description="Destination city slug.")
-    nights: int = Field(description="Number of nights booked.")
-    flight_class: str = Field(default="economy", description="Booked flight class.")
-    room_type: str = Field(default="standard", description="Booked hotel room type.")
-    total_jpy: int = Field(description="Total itinerary cost in JPY.")
-    wifi_mbps: int = Field(default=100, description="Verified hotel/city Wi-Fi speed in Mbps.")
-    summary: str = Field(default="", description="Human-readable confirmation summary.")
+    status: Literal["CONFIRMED", "BLOCKED", "NEEDS_REPLAN"] = Field(description="最終ステータス")
+    reservation_id: str = Field(default="", description="予約確定時の予約番号")
+    city: str = Field(description="行き先都市コード")
+    nights: int = Field(description="宿泊数 (泊)")
+    flight_class: str = Field(default="economy", description="予約した航空機クラス")
+    room_type: str = Field(default="standard", description="予約した客室グレード")
+    total_jpy: int = Field(description="合計金額 (円)")
+    wifi_mbps: int = Field(default=100, description="Wi-Fi 通信速度 (Mbps)")
+    summary: str = Field(default="", description="ユーザー向けの日本語完了サマリー")

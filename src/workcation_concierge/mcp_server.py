@@ -16,9 +16,11 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from mcp.server.mcpserver import MCPServer as FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 # MCPサーバーのインスタンス定義
 mcp = FastMCP("travel-saas-mcp")
@@ -385,4 +387,17 @@ def get_reservations() -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    # Cloud Run 等で MCP_TRANSPORT=streamable-http または PORT 指定時は HTTP モードで起動
+    transport = os.getenv("MCP_TRANSPORT", "").strip().lower()
+    if transport == "streamable-http" or (not transport and os.getenv("PORT")):
+        mcp.run(
+            transport="streamable-http",
+            host="0.0.0.0",
+            port=int(os.getenv("PORT", "8080")),
+            stateless_http=True,
+            transport_security=TransportSecuritySettings(
+                enable_dns_rebinding_protection=False,
+            ),
+        )
+    else:
+        mcp.run()
