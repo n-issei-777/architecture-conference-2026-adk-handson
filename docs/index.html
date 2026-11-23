@@ -294,7 +294,7 @@ root_agent = Agent(
           <span>Cloud Shell Terminal</span>
           <button class="copy-btn" onclick="copyCode(this)">Copy</button>
         </div>
-        <pre><code>uv run adk web . --port 8000</code></pre>
+        <pre><code>uv run adk web . --host 0.0.0.0 --port 8000 --allow_origins '*'</code></pre>
       </div>
           
       <div class="code-card output-card">
@@ -466,7 +466,7 @@ def enforce_booking_guardrail(
 
           <h2>3.3 もう一度同じ攻撃プロンプトを送り、100% 遮断されることを確認する</h2>
           <ol>
-            <li>Cloud Shell ターミナルで一度 <code>Ctrl+C</code> を押して <code>uv run adk web . --port 8000</code> を再起動し、ADK Web UI 右上の <strong><code>+ New Session</code></strong> を押します。</li>
+            <li>Cloud Shell ターミナルで一度 <code>Ctrl+C</code> を押して <code>uv run adk web . --host 0.0.0.0 --port 8000 --allow_origins '*'</code> を再起動し、ADK Web UI 右上の <strong><code>+ New Session</code></strong> を押します。</li>
             <li>先ほど突破された <strong>テスト 2 のプロンプト</strong> をもう一度そのまま送信します。</li>
           </ol>
           
