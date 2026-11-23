@@ -159,10 +159,14 @@
           <h2>1.1 Google Cloud コンソールで Cloud Shell を開く</h2>
           <ol>
             <li>Qwiklabs 画面左上の緑色の <strong>Start Lab</strong> をクリックします。</li>
-            <li>表示された <strong>Open Console</strong> を右クリック → <strong>シークレット ウィンドウで開く</strong> を選び、左パネルの <code>Username</code> と <code>Password</code> でログインします。</li>
-            <li>下図の <strong>①</strong>（右上の <code>&gt;_</code> アイコン）をクリックして Cloud Shell を起動します（「承認 / Authorize」が出たらクリック）。</li>
+            <li>表示された <strong>Open Google Console</strong> を右クリック → <strong>シークレット ウィンドウで開く</strong> を選び、左パネルの <code>Username</code> と <code>Password</code> でログインして利用規約に同意します。</li>
           </ol>
-          <img class="guide-img" src="images/01_cloud_shell_guide.png" alt="Cloud Shell とエディタ・Web Preview の場所">
+          <img class="guide-img" src="images/00_qwiklabs_start_lab.png" alt="Qwiklabs Start Lab 後の Open Google Console と認証情報">
+          <ol start="3">
+            <li>下図の赤枠（コンソール右上の <code>&gt;_</code> アイコン：<strong>Activate Cloud Shell</strong>）をクリックし、画面下部にターミナルが開いたら「承認（Authorize）」をクリックします。</li>
+          </ol>
+          <img class="guide-img" src="images/01a_activate_cloud_shell.png" alt="Google Cloud コンソール右上の Activate Cloud Shell ボタン">
+          <img class="guide-img" src="images/01b_cloud_shell_terminal.png" alt="Cloud Shell ターミナルと Open Editor ボタン">
 
           <h2>1.2 API 有効化と環境変数の設定</h2>
           <p>Cloud Shell ターミナルに以下のコマンドをコピー＆貼り付けして実行します（初回のみ承認ダイアログが出たら <strong>Authorize</strong> を押してください）。</p>
@@ -217,13 +221,13 @@ uv run pytest</code></pre>
           
       <div class="code-card output-card">
         <div class="code-header">
-          <span>正常終了時の出力例（17 件すべて passed になれば準備完了）</span>
+          <span>正常終了時の出力例（19 passed と表示されれば準備完了）</span>
           <span class="ro-badge">出力例（コピー不要）</span>
         </div>
         <pre><code>adk, version 2.15.0
 agents-cli, version 1.15.0
-.................                                                        [100%]
-17 passed in 5.8s</code></pre>
+...................                                                      [100%]
+19 passed in 21.56s</code></pre>
       </div>
 
           <div class="nav-footer">
@@ -294,7 +298,23 @@ root_agent = Agent(
           <span>Cloud Shell Terminal</span>
           <button class="copy-btn" onclick="copyCode(this)">Copy</button>
         </div>
-        <pre><code>uv run adk web . --host 0.0.0.0 --port 8000 --allow_origins '*'</code></pre>
+        <pre><code>cd ~/architecture-conference-2026-adk-handson
+uv run adk web . --host 0.0.0.0 --port 8000 --allow_origins &#x27;*&#x27; </code></pre>
+      </div>
+          <div class="callout info">
+            <strong>初回のみ Google への telemetry 送信の可否が聞かれます</strong><br>
+            今回はハンズオンのため <code>n</code> で回答してください（誤って <code>Y</code> にしても問題ありません）。
+          </div>
+          
+      <div class="code-card output-card">
+        <div class="code-header">
+          <span>初回起動時の確認プロンプト例（コピー不要）</span>
+          <span class="ro-badge">出力例（コピー不要）</span>
+        </div>
+        <pre><code>Help improve the ADK (CLI and Web UI) by allowing Google to collect pseudonymized usage data?
+What is collected: Names of subcommands and flags (no user-provided values or arguments), execution metrics (duration, exit state), environment specs (OS, Python version), and aggregated Web UI feature interactions. No personally identifiable information (PII) is collected.
+This is OFF by default. You can opt out at any time using the &#x27;adk telemetry disable&#x27; command or Web UI user settings.
+Enable telemetry? [Y/n]: </code></pre>
       </div>
           
       <div class="code-card output-card">
@@ -304,11 +324,14 @@ root_agent = Agent(
         </div>
         <pre><code>INFO:     Started server process [12345]
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)</code></pre>
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)</code></pre>
       </div>
 
           <ol>
-            <li>Cloud Shell 右上の <strong>ウェブプレビュー（Web Preview）</strong> アイコン → <strong>ポートを変更（Change port）</strong> で <code>8000</code> を入力して開きます（すでに 8000 なら「ポート 8000 でプレビュー」）。</li>
+            <li>下図の赤枠（Cloud Shell 右上の <strong>ウェブプレビュー / Web Preview</strong> アイコン）をクリックし、「ポートを変更（Change port）」で <code>8000</code> を指定して開きます（すでに 8000 になっていれば「ポート 8000 でプレビュー」を選択）。</li>
+          </ol>
+          <img class="guide-img" src="images/02a_cloud_shell_web_preview.png" alt="Cloud Shell 右上の Web Preview ボタン">
+          <ol start="2">
             <li>下図の <strong>①</strong>（左上のプルダウン）で <strong><code>step0_minimal_agent</code></strong> を選択します。</li>
             <li>下図の <strong>③</strong>（チャット欄）に以下の 2 つの質問を順番に送ってみましょう。</li>
           </ol>
@@ -356,10 +379,26 @@ INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)</code>
           <span>src/workcation_concierge/mcp_client.py（本物の MCP 接続・コピー不要）</span>
           <span class="ro-badge">出力例（コピー不要）</span>
         </div>
-        <pre><code>
+        <pre><code>    StdioConnectionParams,
+    StreamableHTTPConnectionParams,
+)
+from mcp import StdioServerParameters
+
+
 def create_travel_mcp_toolset(tool_filter: list[str] | None = None) -&gt; McpToolset:
-    &quot;&quot;&quot;Create an McpToolset launching `workcation_concierge.mcp_server` over stdio.&quot;&quot;&quot;
-    # ローカルMCPサーバープロセスを起動し標準入出力 (JSON-RPC) 経由でツールを取得
+    &quot;&quot;&quot;Create an McpToolset using StreamableHTTP (if MCP_SERVER_URL is set) or stdio.&quot;&quot;&quot;
+    mcp_url = os.getenv(&quot;MCP_SERVER_URL&quot;, &quot;&quot;).strip()
+    if mcp_url:
+        # 発展構成: Cloud Run 等へ分離展開したリモート MCP サーバーへ StreamableHTTP 接続
+        return McpToolset(
+            connection_params=StreamableHTTPConnectionParams(
+                url=mcp_url,
+                timeout=15.0,
+            ),
+            tool_filter=tool_filter,
+        )
+
+    # 既定構成: ローカル MCP サーバープロセスを stdio (JSON-RPC) で起動してツール取得
     return McpToolset(
         connection_params=StdioConnectionParams(
             server_params=StdioServerParameters(
@@ -409,7 +448,9 @@ def create_travel_mcp_toolset(tool_filter: list[str] | None = None) -&gt; McpToo
           <span>src/workcation_concierge/guardrails.py（全文・コピー不要）</span>
           <span class="ro-badge">出力例（コピー不要）</span>
         </div>
-        <pre><code>DEFAULT_APPROVED_LIMIT_JPY = 150_000
+        <pre><code>
+# デフォルトの自己承認予算上限 (150,000円)
+DEFAULT_APPROVED_LIMIT_JPY = 150_000
 
 
 def enforce_booking_guardrail(
@@ -426,7 +467,6 @@ def enforce_booking_guardrail(
     limit = int(tool_context.state.get(&quot;approved_limit_jpy&quot;, DEFAULT_APPROVED_LIMIT_JPY))
     flight_class = str(args.get(&quot;flight_class&quot;, &quot;economy&quot;)).lower()
     room_type = str(args.get(&quot;room_type&quot;, &quot;standard&quot;)).lower()
-    total_jpy = int(args.get(&quot;total_jpy&quot;, 0))
 
     # 1. 一般社員によるスイートルーム・ビジネスクラス予約をブロック
     if role != &quot;executive&quot; and (room_type == &quot;suite&quot; or flight_class == &quot;business&quot;):
@@ -436,14 +476,26 @@ def enforce_booking_guardrail(
             &quot;message&quot;: &quot;社内規定違反: 一般社員はエコノミー・スタンダードのみ予約可能。&quot;,
         }
 
-    # 2. 承認予算上限 (デフォルト15万円) を超える予約をブロック
-    if total_jpy &gt; limit:
+    # 2. LLMの申告額を鵜呑みにせずサーバー側で再計算した金額で上限を検証
+    claimed_total = int(args.get(&quot;total_jpy&quot;, 0))
+    recalculated = calculate_itinerary_cost(
+        city=str(args.get(&quot;city&quot;, &quot;&quot;)),
+        nights=int(args.get(&quot;nights&quot;, 0)),
+        flight_class=flight_class,
+        room_type=room_type,
+    )
+    verified_total = (
+        max(claimed_total, int(recalculated[&quot;total_jpy&quot;]))
+        if recalculated.get(&quot;status&quot;) == &quot;ok&quot;
+        else claimed_total
+    )
+    if verified_total &gt; limit:
         return {
             &quot;status&quot;: &quot;BLOCKED&quot;,
             &quot;violation_type&quot;: &quot;BUDGET_LIMIT_EXCEEDED&quot;,
             &quot;approved_limit_jpy&quot;: limit,
-            &quot;total_jpy&quot;: total_jpy,
-            &quot;message&quot;: f&quot;予算上限超過: 合計 {total_jpy:,} 円が上限 {limit:,} 円を超過。&quot;,
+            &quot;total_jpy&quot;: verified_total,
+            &quot;message&quot;: f&quot;予算上限超過: 合計 {verified_total:,} 円が上限 {limit:,} 円を超過。&quot;,
         }
 
     return None  # None を返した場合のみ MCP 予約ツールを実行</code></pre>
@@ -661,7 +713,7 @@ uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workca
           <span>正常終了時の出力例</span>
           <span class="ro-badge">出力例（コピー不要）</span>
         </div>
-        <pre><code>============================== 17 passed in 5.8s ===============================
+        <pre><code>============================== 19 passed in 7.9s ===============================
 All checks passed!
 All checks passed!
 Running evaluation for app &#x27;step2_workflow_agent&#x27; (2 cases)...
