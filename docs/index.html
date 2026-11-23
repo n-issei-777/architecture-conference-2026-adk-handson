@@ -195,6 +195,7 @@ gcloud services enable \
   artifactregistry.googleapis.com \
   apphub.googleapis.com \
   cloudtrace.googleapis.com \
+  telemetry.googleapis.com \
   cloudresourcemanager.googleapis.com
 
 echo &quot;Active Project: ${GOOGLE_CLOUD_PROJECT}&quot;</code></pre>
@@ -261,7 +262,8 @@ agents-cli, version 1.15.0
           <span>step0_minimal_agent/agent.py（抜粋・コピー不要）</span>
           <span class="ro-badge">出力例（コピー不要）</span>
         </div>
-        <pre><code>    &quot;&quot;&quot;指定した都市の Wi-Fi 速度と、指定泊数での標準プラン合計料金を取得するツール関数.
+        <pre><code>def get_city_workcation_info(city: str, nights: int = 2) -&gt; dict[str, Any]:
+    &quot;&quot;&quot;指定した都市の Wi-Fi 速度と、指定泊数での標準プラン合計料金を取得するツール関数.
 
     Args:
         city: 都市名 (&#x27;札幌&#x27;, &#x27;沖縄&#x27;, &#x27;ハワイ&#x27;, &#x27;サンフランシスコ&#x27; など)
@@ -284,7 +286,7 @@ agents-cli, version 1.15.0
 # 最小構成の ADK エージェント定義 (Agent + ツール関数1個)
 root_agent = Agent(
     name=&quot;step0_minimal_agent&quot;,
-    model=&quot;gemini-4-hydrogen&quot;,
+    model=gemini_model(&quot;gemini-4-hydrogen&quot;),
     description=&quot;都市ごとのワーケーション通信環境と概算費用を案内する最小エージェント&quot;,
     instruction=(
         &quot;あなたは親切なワーケーション案内アシスタントです。\n&quot;
@@ -717,7 +719,13 @@ uv run agents-cli deploy \
   --project &quot;${GOOGLE_CLOUD_PROJECT}&quot; \
   --region us-central1 \
   --env-vars &quot;GOOGLE_CLOUD_LOCATION=global,GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true,OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_AND_EVENT&quot; \
-  --service-name &quot;workcation-concierge-workflow&quot;</code></pre>
+  --service-name &quot;workcation-concierge-workflow&quot;
+
+# トレース書き込み権限を Agent Runtime サービスアカウントへ付与
+export PROJECT_NUMBER=$(gcloud projects describe &quot;${GOOGLE_CLOUD_PROJECT}&quot; --format=&quot;value(projectNumber)&quot;)
+gcloud projects add-iam-policy-binding &quot;${GOOGLE_CLOUD_PROJECT}&quot; \
+  --member=&quot;serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-aiplatform-re.iam.gserviceaccount.com&quot; \
+  --role=&quot;roles/cloudtrace.agent&quot;</code></pre>
       </div>
           
       <div class="code-card output-card">
