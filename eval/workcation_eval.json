@@ -1,70 +1,25 @@
 {
-  "eval_set_id": "workcation_concierge_eval_set",
-  "name": "Workcation & Smart Travel Concierge Evaluation Suite",
-  "description": "Evaluation scenarios for Step 3 covering auto-booking under 150,000 JPY, grade policy violation blocking, and over-budget conversational manager approval.",
   "eval_cases": [
     {
-      "eval_id": "case_sapporo_auto_book_under_budget",
-      "conversation": [
-        {
-          "invocation_id": "inv_sapporo_1",
-          "user_content": {
-            "role": "user",
-            "parts": [
-              {
-                "text": "札幌で2泊のワーケーションをエコノミー・スタンダードルームで予約してください。"
-              }
-            ]
-          },
-          "final_response": {
-            "role": "model",
-            "parts": [
-              {
-                "text": "札幌（2泊、economy、standard、合計 59,000 円、Wi-Fi 120 Mbps）の予約が完了しました。"
-              }
-            ]
+      "eval_case_id": "case_sapporo_auto_book_under_budget",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "札幌で2泊のワーケーションをエコノミー・スタンダードルームで予約してください。"
           }
-        }
-      ],
-      "session_input": {
-        "app_name": "step2_workflow_agent",
-        "user_id": "eval_user_member",
-        "state": {
-          "user_role": "member",
-          "approved_limit_jpy": 150000
-        }
+        ]
       }
     },
     {
-      "eval_id": "case_hawaii_over_budget_asks_manager_approval",
-      "conversation": [
-        {
-          "invocation_id": "inv_hawaii_1",
-          "user_content": {
-            "role": "user",
-            "parts": [
-              {
-                "text": "ハワイで4泊のワーケーションをエコノミー・スタンダードルームで手配してください。"
-              }
-            ]
-          },
-          "final_response": {
-            "role": "model",
-            "parts": [
-              {
-                "text": "ハワイ4泊の旅程は合計 242,000 円となり、自己承認上限（150,000 円）を超過しています。上長としてこの予算超過プランを承認しますか？承認する場合は新しい予算上限額もあわせて教えてください。"
-              }
-            ]
+      "eval_case_id": "case_hawaii_over_budget_asks_manager_approval",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "ハワイで4泊のワーケーションをエコノミー・スタンダードルームで手配してください。"
           }
-        }
-      ],
-      "session_input": {
-        "app_name": "step2_workflow_agent",
-        "user_id": "eval_user_member",
-        "state": {
-          "user_role": "member",
-          "approved_limit_jpy": 150000
-        }
+        ]
       }
     }
   ]

@@ -682,7 +682,7 @@ uv run ruff check .
 uv run ty check
 
 # 評価データセットを用いた自動評価の実行
-uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workcation_eval.json</code></pre>
+uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workcation_eval.json --config eval/eval_config.yaml --fail-under workcation_workflow_check=1.0</code></pre>
       </div>
           
       <div class="code-card output-card">
@@ -693,9 +693,11 @@ uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workca
         <pre><code>============================== 19 passed in 7.9s ===============================
 All checks passed!
 All checks passed!
-Running evaluation for app &#x27;step2_workflow_agent&#x27; (2 cases)...
-✓ case_sapporo_auto_book_under_budget: PASSED
-✓ case_hawaii_over_budget_asks_manager_approval: PASSED</code></pre>
+workcation_workflow_check:
+  num_cases_total: 2
+  num_cases_valid: 2
+  pass_rate: 1.0000
+RESULT: PASS (workcation_workflow_check 1.00 &gt;= 1.00)</code></pre>
       </div>
 
           <h2>5.2 Agent Runtime への 1 コマンドデプロイ</h2>

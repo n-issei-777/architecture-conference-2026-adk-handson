@@ -81,7 +81,7 @@ uv run ruff check .
 uv run ty check
 
 # 実行手順 (Trajectory) の自動評価
-uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workcation_eval.json
+uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workcation_eval.json --config eval/eval_config.yaml --fail-under workcation_workflow_check=1.0
 
 # Agent Runtime へのデプロイ
 uv run agents-cli deploy \

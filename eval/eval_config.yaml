@@ -1,0 +1,24 @@
+metrics_to_run:
+  - workcation_workflow_check
+
+custom_metrics:
+  - name: workcation_workflow_check
+    custom_function: |
+      def evaluate(instance):
+          case_id = instance.get("eval_case_id", "")
+          resp = instance.get("response") or {}
+          parts = resp.get("parts") or []
+          text = " ".join(p.get("text", "") for p in parts if isinstance(p, dict))
+          if "sapporo" in case_id:
+              ok = ("RES-" in text) or ("59,000" in text) or ("予約" in text)
+              return {
+                  "score": 1.0 if ok else 0.0,
+                  "explanation": "札幌2泊の自動予約完了を確認" if ok else f"自動予約応答が不足: {text[:80]}",
+              }
+          if "hawaii" in case_id:
+              ok = ("承認" in text) or ("242,000" in text) or ("150,000" in text)
+              return {
+                  "score": 1.0 if ok else 0.0,
+                  "explanation": "ハワイ4泊の上長承認プロンプトを確認" if ok else f"承認確認応答が不足: {text[:80]}",
+              }
+          return {"score": 1.0 if text.strip() else 0.0, "explanation": "応答あり"}
