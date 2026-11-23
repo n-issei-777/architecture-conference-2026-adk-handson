@@ -16,12 +16,9 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
-from google.adk import Agent, Runner
-from google.adk.sessions import InMemorySessionService
-from google.genai import types
+from google.adk import Agent
 
 from workcation_concierge.mcp_server import (
     calculate_itinerary_cost,
@@ -63,36 +60,3 @@ root_agent = Agent(
     ),
     tools=[get_city_workcation_info],
 )
-
-
-async def _run_demo() -> None:
-    # SessionService (記憶) と Runner (実行制御) を使った2ターンの会話デモ
-    session_service = InMemorySessionService()
-    runner = Runner(
-        app_name="step0_demo",
-        agent=root_agent,
-        session_service=session_service,
-    )
-    session = await session_service.create_session(app_name="step0_demo", user_id="user_01")
-
-    for prompt in [
-        "札幌で2泊する場合のWi-Fi速度と費用を教えて",
-        "もし3泊に延ばしたらいくらになる？",
-    ]:
-        print(f"\n[User]: {prompt}")
-        msg = types.Content(role="user", parts=[types.Part(text=prompt)])
-        async for event in runner.run_async(
-            user_id="user_01", session_id=session.id, new_message=msg
-        ):
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if part.function_call:
-                        print(
-                            f"  -> [Tool Call] {part.function_call.name}({part.function_call.args})"
-                        )
-                    if part.text:
-                        print(f"[{event.author}]: {part.text}")
-
-
-if __name__ == "__main__":
-    asyncio.run(_run_demo())
