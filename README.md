@@ -67,7 +67,7 @@ uv run pytest -v
 
 ### Step 0 & Step 1 & Step 2: ADK Web UI の起動
 ```bash
-uv run adk web . --host 0.0.0.0 --port 8000 --allow_origins '*'
+uv run adk web . --host 0.0.0.0 --port 8080 --allow_origins '*'
 ```
 - **Step 0**: 左上のプルダウンで `step0_minimal_agent` を選択し、「札幌で2泊する場合のWi-Fi速度と費用を教えて」→「もし3泊に延ばしたらいくらになる？」と続けて質問して `Events` / `State` タブを確認します。
 - **Step 1**: `step1_basic_agent` を選択し、口頭承認を装うスイートルーム予約プロンプトでプロンプト突破を確認した後、`step1_basic_agent/agent.py` 61 行目の `before_tool_callback=None` を `enforce_booking_guardrail` に変更して 100% ブロックを確認します。

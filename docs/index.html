@@ -299,7 +299,7 @@ root_agent = Agent(
           <button class="copy-btn" onclick="copyCode(this)">Copy</button>
         </div>
         <pre><code>cd ~/architecture-conference-2026-adk-handson
-uv run adk web . --host 0.0.0.0 --port 8000 --allow_origins &#x27;*&#x27; </code></pre>
+uv run adk web . --host 0.0.0.0 --port 8080 --allow_origins &#x27;*&#x27; </code></pre>
       </div>
           <div class="callout info">
             <strong>初回のみ Google への telemetry 送信の可否が聞かれます</strong><br>
@@ -324,11 +324,11 @@ Enable telemetry? [Y/n]: </code></pre>
         </div>
         <pre><code>INFO:     Started server process [12345]
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)</code></pre>
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)</code></pre>
       </div>
 
           <ol>
-            <li>下図の赤枠（Cloud Shell 右上の <strong>ウェブプレビュー / Web Preview</strong> アイコン）をクリックし、「ポートを変更（Change port）」で <code>8000</code> を指定して開きます（すでに 8000 になっていれば「ポート 8000 でプレビュー」を選択）。</li>
+            <li>下図の赤枠（Cloud Shell 右上の <strong>ウェブプレビュー / Web Preview</strong> アイコン）をクリックし、<strong>「ポート 8080 でプレビュー（Preview on port 8080）」</strong> をクリックします。</li>
           </ol>
           <img class="guide-img" src="images/02a_cloud_shell_web_preview.png" alt="Cloud Shell 右上の Web Preview ボタン">
           <ol start="2">
@@ -518,7 +518,7 @@ def enforce_booking_guardrail(
 
           <h2>3.3 もう一度同じ攻撃プロンプトを送り、100% 遮断されることを確認する</h2>
           <ol>
-            <li>Cloud Shell ターミナルで一度 <code>Ctrl+C</code> を押して <code>uv run adk web . --host 0.0.0.0 --port 8000 --allow_origins '*'</code> を再起動し、ADK Web UI 右上の <strong><code>+ New Session</code></strong> を押します。</li>
+            <li>Cloud Shell ターミナルで一度 <code>Ctrl+C</code> を押して <code>uv run adk web . --host 0.0.0.0 --port 8080 --allow_origins '*'</code> を再起動し、ADK Web UI 右上の <strong><code>+ New Session</code></strong> を押します。</li>
             <li>先ほど突破された <strong>テスト 2 のプロンプト</strong> をもう一度そのまま送信します。</li>
           </ol>
           
