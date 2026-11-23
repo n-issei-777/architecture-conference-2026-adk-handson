@@ -651,6 +651,11 @@ def enforce_booking_guardrail(
             左ペインの <strong><code>State</code> タブ</strong> を開くと、<code>approved_limit_jpy</code> が <code>250000</code> に更新されたことで、最終段 <code>booking_agent</code> の <code>enforce_booking_guardrail</code> の上限チェックを安全に通過し、MCP 予約（<code>RES-HAW-0001</code>）が確定したことが一目でわかります！
           </div>
 
+          <div class="callout warn">
+            <strong>注：本番環境における承認フローのベストプラクティス</strong><br>
+            本来であれば、申請者本人がチャット上で承認するのではなく、上長など権限を持つ承認者へメールや Google Chat・Slack 等で承認依頼を送信し、承認者の認証済みアクション（承認ボタン押下や返信 Webhook）を受けてワークフローを再開するのが本番環境におけるベストプラクティスです。ADK 2.0 では <code>ResumabilityConfig(is_resumable=True)</code> と永続セッション（<code>VertexAiSessionService</code>）により、一時停止した <code>session_id</code> を外部の承認システムや Webhook から安全に再開し、検証済みの承認結果のみを <code>Session.state</code> に反映できます。本ハンズオンでは 1 人で一連の動作を体験できるよう、上長役を兼ねたチャット入力で簡易再現しています。
+          </div>
+
           <div class="nav-footer">
             <button class="nav-btn secondary" onclick="goStep(2)">&larr; 前のステップ</button>
             <button class="nav-btn" onclick="goStep(4)">次へ：Step 3 評価 &amp; Agent Runtime へ &rarr;</button>
