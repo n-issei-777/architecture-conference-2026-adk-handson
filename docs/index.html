@@ -163,7 +163,7 @@
 <section class="step-panel active">
   <div class="card">
     <h1>Task 1. ラボの開始と Cloud Shell 環境のセットアップ</h1>
-    <p>本ハンズオンでは、Google Cloud のオープンソース フレームワークである Agent Development Kit (ADK) 2.0（v2.15.0）、最新モデル Gemini 4（gemini-4-hydrogen / gemini-3.8-flash）、およびライフサイクル管理 CLI である agents-cli（v1.15.0）を組み合わせ、最小構成の AI エージェントから本番運用を見据えたワークフロー構築・クラウド展開までを段階的に体験します。</p>
+    <p>本ハンズオンでは、Google Cloud のオープンソース フレームワークである Agent Development Kit (ADK) 2.0（v2.15.0）、最新モデル Gemini 4（gemini-4-hydrogen）と軽量モデル gemini-3.8-flash、およびライフサイクル管理 CLI である agents-cli（v1.15.0）を組み合わせ、最小構成の AI エージェントから本番運用を見据えたワークフロー構築・クラウド展開までを段階的に体験します。</p>
     
           <div class="callout info">
             <strong>はじめに：Qwiklabs にアクセスして本日のラボを開く</strong>
@@ -318,7 +318,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)</code></
         tool_filter=tool_filter,
     )</code></pre></div>
     <h2>3.1 プロンプトのみの防御（ベストエフォート）と限界を確認する</h2>
-    <p>初期状態の step1_basic_agent/agent.py は、システムプロンプト（日本語 instruction）で「一般社員によるスイートルーム・ビジネスクラス・15 万円超の予約は禁止」と指示している一方、52 行目の before_tool_callback=None（コードによるチェックなし）になっています。</p>
+    <p>初期状態の step1_basic_agent/agent.py は、システムプロンプト（日本語 instruction）で「一般社員によるスイートルーム・ビジネスクラス・15 万円超の予約は禁止」と指示している一方、53 行目の before_tool_callback=None（コードによるチェックなし）になっています。</p>
     <ol><li>ADK Web UI 左上のプルダウンを step1_basic_agent に切り替えます。</li><li>まず通常の予算内プラン（札幌 2 泊 = 59,000 円）を送り、予約が成功することを確認します。</li><li>続いて規定外のスイートルーム予約を依頼するテスト 2 のプロンプトを送信し、挙動を確認します。</li></ol>
     <p><strong>テスト 1：規定内プラン（札幌 2 泊 = 59,000 円 → 予約成功）</strong></p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>札幌で2泊、standardルームでワーケーションを予約してください。</code></pre></div>
@@ -375,8 +375,8 @@ def enforce_booking_guardrail(
         }
 
     return None  # None を返した場合のみ MCP 予約ツールを実行</code></pre></div>
-    <ol><li>Cloud Shell エディタで step1_basic_agent/agent.py を開きます。</li><li>ファイル末尾（47〜53 行目、52 行目）にある before_tool_callback=None, を、以下の通り before_tool_callback=enforce_booking_guardrail, に書き換えて保存（Ctrl+S / Cmd+S）します。</li></ol>
-    <p><strong>step1_basic_agent/agent.py（47〜53 行目の完成形）：</strong></p>
+    <ol><li>Cloud Shell エディタで step1_basic_agent/agent.py を開きます。</li><li>ファイル末尾（48〜54 行目、53 行目）にある before_tool_callback=None, を、以下の通り before_tool_callback=enforce_booking_guardrail, に書き換えて保存（Ctrl+S / Cmd+S）します。</li></ol>
+    <p><strong>step1_basic_agent/agent.py（48〜54 行目の完成形）：</strong></p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>    tools=[
         travel_policy_skill_toolset,
         travel_mcp_toolset,
@@ -406,7 +406,7 @@ def enforce_booking_guardrail(
     <p>Step 2 では、下図のように「要件ヒアリング（mode=&#x27;task&#x27;）→ 並列リサーチ（JoinNode）→ Python による正確な金額計算・分岐 → 上長承認タスク（mode=&#x27;task&#x27;）＋ Session.state 上限更新 → MCP 予約確定」をつないだ ADK 2.0 Workflow を実装します。</p>
     <img class="guide-img" src="images/doc/image16.png" alt="手順スクリーンショット">
     <h2>4.1 【コーディング演習】Cloud Shell Editor で step2_starter/agent.py の 2 つの TODO を完成させる（約 2 分）</h2>
-    <p>step2_starter/agent.py は主要ノードと Workflow 定義だけをシンプルに整理してあります。Cloud Shell Editor で 2 箇所（81 行目の分岐 1 行と 139 行目の Workflow エッジのコメント解除）を編集して完成させましょう（万一詰まった場合は完成版 step2_workflow_agent にそのまま切り替えられます）。</p>
+    <p>step2_starter/agent.py は主要ノードと Workflow 定義だけをシンプルに整理してあります。Cloud Shell Editor で 2 箇所（83 行目の分岐 1 行と 139 行目の Workflow エッジのコメント解除）を編集して完成させましょう（万一詰まった場合は完成版 step2_workflow_agent にそのまま切り替えられます）。</p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>cd ~/architecture-conference-2026-adk-handson
 uv run pytest -v</code></pre></div>
     <p><strong>正常終了時の出力例（コピー不要）</strong></p>
@@ -414,7 +414,7 @@ uv run pytest -v</code></pre></div>
     <h2>4.2 編集箇所（2 箇所）</h2>
     <p>以下の 2 箇所を Cloud Shell Editor で編集して保存します（TODO 課題 2 はコメントアウトの # を外すだけでも OK です）。</p>
     <p><strong>Cloud Shell Editor での編集内容</strong></p>
-    <p>① step2_starter/agent.py 81 行目付近（TODO 課題 1：calculate_and_route 内の route）：</p>
+    <p>① step2_starter/agent.py 83 行目付近（TODO 課題 1：calculate_and_route 内の route）：</p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>    route = &quot;auto_book&quot; if total_jpy &lt;= approved_limit else &quot;needs_approval&quot;</code></pre></div>
     <p>② step2_starter/agent.py 139 行目付近（TODO 課題 2：root_agent = Workflow(...) の定義）：</p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>root_agent = Workflow(

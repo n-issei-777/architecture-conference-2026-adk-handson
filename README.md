@@ -71,8 +71,8 @@ uv run pytest -v
 uv run adk web . --host 0.0.0.0 --port 8080 --allow_origins '*'
 ```
 - **Step 0**: 左上のプルダウンで `step0_minimal_agent` を選択し、「札幌で2泊する場合のWi-Fi速度と費用を教えて」→「もし3泊に延ばしたらいくらになる？」と続けて質問して `Events` / `State` タブを確認します。
-- **Step 1**: `step1_basic_agent` を選択してプロンプトのみの挙動を確認した後、`step1_basic_agent/agent.py` 52 行目の `before_tool_callback=None` を `enforce_booking_guardrail` に変更し、沖縄スイート予約の同じ入力が `Events` タブで `BLOCKED` になることと、`uv run pytest tests/unit/test_guardrails.py -v` で決定論的ガードレイルを確認します（Step 1 は軽量モデル `gemini-3.8-flash` を使用）。
-- **Step 2**: Cloud Shell Editor で `step2_starter/agent.py` の 2 つの `TODO`（81 行目の分岐 1 行と 139 行目の `Workflow` エッジのコメント解除）を実装し、札幌 2 泊（自動予約）とハワイ 4 泊（日本語チャットでの上長承認 → `Session.state` 上限更新 → 予約完了）を確認します（遅れた場合は完成版 `step2_workflow_agent` にそのまま切替可能）。
+- **Step 1**: `step1_basic_agent` を選択してプロンプトのみの挙動を確認した後、`step1_basic_agent/agent.py` 53 行目の `before_tool_callback=None` を `enforce_booking_guardrail` に変更し、沖縄スイート予約の同じ入力が `Events` タブで `BLOCKED` になることと、`uv run pytest tests/unit/test_guardrails.py -v` で決定論的ガードレイルを確認します（Step 1 は軽量モデル `gemini-3.8-flash` を使用）。
+- **Step 2**: Cloud Shell Editor で `step2_starter/agent.py` の 2 つの `TODO`（83 行目の分岐 1 行と 139 行目の `Workflow` エッジのコメント解除）を実装し、札幌 2 泊（自動予約）とハワイ 4 泊（日本語チャットでの上長承認 → `Session.state` 上限更新 → 予約完了）を確認します（遅れた場合は完成版 `step2_workflow_agent` にそのまま切替可能）。
 
 ### Step 3: 自動評価と Agent Runtime デプロイ・プレイグラウンド確認
 ```bash
