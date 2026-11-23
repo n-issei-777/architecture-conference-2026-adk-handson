@@ -151,12 +151,19 @@
           <h1>Task 1. ラボの開始と Cloud Shell 環境のセットアップ（10 分）</h1>
           <p>本ハンズオンでは、<strong>Google ADK 2.0（<code>v2.15.0</code>）</strong>・最新モデル <strong>Gemini 4（<code>gemini-4-neon</code> / <code>gemini-4-hydrogen</code>）</strong>・<strong><code>agents-cli</code>（<code>v1.15.0</code>）</strong> を使い、最小エージェントから ADK 2.0 ハイブリッド Workflow、本番の Agent Runtime デプロイまでを段階的に構築します。</p>
 
+          <h2>1.1 Qwiklabs にアクセスして本日のラボを開く</h2>
+          <ol>
+            <li>ブラウザで <a href="https://explore.qwiklabs.com/" target="_blank" rel="noopener"><strong>https://explore.qwiklabs.com/</strong></a> にアクセスします。</li>
+            <li>画面右上の <strong>Sign in</strong> から、事前登録済みのアカウントでログインします（アカウント未作成の場合は、当日投影スライドの案内手順に沿って作成してください）。</li>
+            <li>トップ画面に表示される本日のクラスルームから、本ハンズオンのラボを開きます。</li>
+          </ol>
+
           <div class="callout warn">
             <strong>重要：シークレットウィンドウの使用</strong><br>
             個人の Google アカウントとの混線を防ぐため、Qwiklabs 左パネルの <strong>「Open Console（または Open Google Console）」は必ず右クリックして「シークレット ウィンドウで開く」</strong> を選択してください。
           </div>
 
-          <h2>1.1 Google Cloud コンソールで Cloud Shell を開く</h2>
+          <h2>1.2 Google Cloud コンソールで Cloud Shell を開く</h2>
           <ol>
             <li>Qwiklabs 画面左上の緑色の <strong>Start Lab</strong> をクリックします。</li>
             <li>表示された <strong>Open Google Console</strong> を右クリック → <strong>シークレット ウィンドウで開く</strong> を選び、左パネルの <code>Username</code> と <code>Password</code> でログインして利用規約に同意します。</li>
@@ -168,7 +175,7 @@
           <img class="guide-img" src="images/01a_activate_cloud_shell.png" alt="Google Cloud コンソール右上の Activate Cloud Shell ボタン">
           <img class="guide-img" src="images/01b_cloud_shell_terminal.png" alt="Cloud Shell ターミナルと Open Editor ボタン">
 
-          <h2>1.2 API 有効化と環境変数の設定</h2>
+          <h2>1.3 API 有効化と環境変数の設定</h2>
           <p>Cloud Shell ターミナルに以下のコマンドをコピー＆貼り付けして実行します（初回のみ承認ダイアログが出たら <strong>Authorize</strong> を押してください）。</p>
           
       <div class="code-card">
@@ -199,7 +206,7 @@ echo &quot;Active Project: ${GOOGLE_CLOUD_PROJECT}&quot;</code></pre>
 Active Project: qwiklabs-gcp-01-xxxxxxxxxxxx</code></pre>
       </div>
 
-          <h2>1.3 ハンズオン教材の取得とパッケージ同期</h2>
+          <h2>1.4 ハンズオン教材の取得とパッケージ同期</h2>
           <p>リポジトリをクローンし、<code>.env</code> にプロジェクト ID を自動設定した上で <code>uv sync</code> と単体・結合テストを実行します。</p>
           
       <div class="code-card">
