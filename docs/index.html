@@ -406,6 +406,16 @@ def enforce_booking_guardrail(
     <p>Step 2 では、下図のように「要件ヒアリング（mode=&#x27;task&#x27;）→ 並列リサーチ（JoinNode）→ Python による正確な金額計算・分岐 → 上長承認タスク（mode=&#x27;task&#x27;）＋ Session.state 上限更新 → MCP 予約確定」をつないだ ADK 2.0 Workflow を実装します。</p>
     <img class="guide-img" src="images/doc/image16.png" alt="手順スクリーンショット">
     <h2>4.1 【コーディング演習】Cloud Shell Editor で step2_starter/agent.py の 2 つの TODO を完成させる（約 2 分）</h2>
+    <div class="callout info">
+      <strong>Step 2 コード解読：主要パラメータと <code>edges</code> の 4 パターン</strong>
+      <ul style="margin:8px 0 0 18px;">
+        <li><strong><code>mode="task"</code> ＋ <code>output_schema</code></strong>：条件が揃うまで複数ターン対話し、確定データを Pydantic 型で出力（<code>intake_agent</code>, <code>manager_approval_task</code>）</li>
+        <li><strong><code>mode="single_turn"</code></strong>：1 ターンで検索や予約を完結（<code>search_agent</code>, <code>booking_agent</code>）</li>
+        <li><strong><code>FunctionNode</code> / <code>JoinNode</code></strong>：LLM を使わず 0 トークンで Python 確定処理と並列合流を実行</li>
+        <li><strong><code>EventActions(route=..., state_delta=...)</code></strong>：分岐先キー（<code>route</code>）と <code>Session.state</code> の更新値を返す</li>
+        <li><strong><code>Workflow(edges=[...])</code> の 4 パターン</strong>：① 直列 <code>(A, B)</code> ／ ② 並列分岐・合流 <code>(A, (B, C))</code> → <code>((B, C), JoinNode)</code> ／ ③ 条件分岐 <code>(X, {"auto_book": B, "needs_approval": C})</code> ／ ④ 既定ルート <code>{"approved": B, DEFAULT_ROUTE: C}</code></li>
+      </ul>
+    </div>
     <p>step2_starter/agent.py は主要ノードと Workflow 定義だけをシンプルに整理してあります。Cloud Shell Editor で 2 箇所（83 行目の分岐 1 行と 139 行目の Workflow エッジのコメント解除）を編集して完成させましょう（万一詰まった場合は完成版 step2_workflow_agent にそのまま切り替えられます）。</p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>cd ~/architecture-conference-2026-adk-handson
 uv run pytest -v</code></pre></div>
@@ -463,6 +473,15 @@ uv run pytest -v</code></pre></div>
     <h1>Task 5. Step 3 — 自動評価と Agent Runtime プレイグラウンド実機確認</h1>
     <p>最後に、単体・結合テストと 実行手順（Trajectory）の自動評価を実行した上で、本番マネージド実行基盤である Agent Runtime へデプロイし、Google Cloud コンソールの「プレイグラウンド」画面からクラウド上のエージェントと対話します（デプロイには約 4〜5 分かかります）。</p>
     <h2>5.1 テスト・静的解析と自動評価（agents-cli eval run）の実行</h2>
+    <div class="callout info">
+      <strong>何をどうテストしているか（<code>pytest</code> vs <code>agents-cli eval run</code>）</strong>
+      <ul style="margin:8px 0 0 18px;">
+        <li><strong>第 1 層 <code>pytest</code>（19 件・0 トークン）</strong>：Callback 遮断（過少申告含む）・金額計算・Workflow 条件分岐を決定論的に高速検証</li>
+        <li><strong>第 2 層 <code>agents-cli eval run</code>（実 LLM ＋ 実 MCP）</strong>：<code>Step 1: generate</code> でローカル ADK サーバーを起動して推論トレースを取得 → <code>Step 2: grade</code> で自動採点＆HTML レポート出力</li>
+        <li><strong><code>eval/workcation_eval.json</code>（入力 2 ケース）</strong>：① 札幌 2 泊で自動予約完了するか ／ ② ハワイ 4 泊で上長承認を求めるか</li>
+        <li><strong><code>eval/eval_config.yaml</code>（採点ルール）</strong>：評価関数 <code>workcation_workflow_check</code> で応答を判定し、<code>--fail-under workcation_workflow_check=1.0</code> で品質ゲート化（本番では組み込みの LLM-as-a-Judge 指標も併用可能）</li>
+      </ul>
+    </div>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>cd ~/architecture-conference-2026-adk-handson
 uv run pytest -v
 uv run ruff check .
