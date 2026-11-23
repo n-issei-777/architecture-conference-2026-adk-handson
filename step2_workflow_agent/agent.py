@@ -20,24 +20,18 @@ from typing import Any
 
 from google.adk import Agent, Context, Event, Workflow
 from google.adk.apps import App, ResumabilityConfig
-from google.adk.events import EventActions
-from google.adk.workflow import DEFAULT_ROUTE, FunctionNode, JoinNode
-from google.genai import types
+from google.adk.workflow import DEFAULT_ROUTE, JoinNode
 
-from workcation_concierge.guardrails import (
-    DEFAULT_APPROVED_LIMIT_JPY,
-    enforce_booking_guardrail,
-)
+from workcation_concierge.guardrails import enforce_booking_guardrail
 from workcation_concierge.mcp_client import create_travel_mcp_toolset
-from workcation_concierge.mcp_server import (
-    calculate_itinerary_cost,
-    fetch_workcation_metrics,
-)
-from workcation_concierge.schemas import (
-    ApprovalDecision,
-    BookingResult,
-    CandidatePlan,
-    TripRequest,
+from workcation_concierge.schemas import ApprovalDecision, CandidatePlan, TripRequest
+from workcation_concierge.workflow_nodes import (
+    apply_approval_decision,
+    build_cost_plan,
+    fetch_workcation_metrics_node,
+    fetch_workcation_metrics_step,
+    replan_notice,
+    text_event,
 )
 
 # 1. 要件ヒアリング・タスクノード (mode="task", gemini-4-neon)
@@ -57,20 +51,7 @@ intake_agent = Agent(
     ),
 )
 
-
-# 2. 並列ブランチA: 通信環境・コワーキング拠点数の確定取得 (0-LLM Python 関数ノード)
-def fetch_workcation_metrics_node(node_input: dict[str, Any]) -> dict[str, Any]:
-    """指定都市の Wi-Fi 速度とコワーキングスペース数を確定取得."""
-    city = str(node_input.get("city", "sapporo"))
-    return fetch_workcation_metrics(city)
-
-
-fetch_workcation_metrics_step = FunctionNode(
-    func=fetch_workcation_metrics_node,
-    name="fetch_workcation_metrics",
-)
-
-# 3. 並列ブランチB: MCP 経由でフライト・ホテルを検索するエージェント (gemini-4-hydrogen)
+# 2. 並列ブランチB: MCP 経由でフライト・ホテルを検索する高速エージェント (gemini-4-hydrogen)
 search_agent = Agent(
     name="search_agent",
     model="gemini-4-hydrogen",
@@ -89,60 +70,32 @@ search_agent = Agent(
 join_research = JoinNode(name="join_research")
 
 
-# 4. 0-LLM 確定金額計算 & 条件分岐ルーティング関数ノード
+# 3. 0-LLM 確定金額計算 & 条件分岐ルーティング関数ノード
 def calculate_and_route(ctx: Context, node_input: dict[str, Any]) -> Event:
     """Python で正確な合計金額を算出し、15万円以下は自動予約、超過は上長承認へ分岐."""
-    metrics = (
-        node_input.get("fetch_workcation_metrics")
-        or node_input.get("fetch_workcation_metrics_node")
-        or {}
-    )
-    candidate = node_input.get("search_agent") or node_input.get("fake_search_agent") or {}
-
-    city = str(candidate.get("city") or metrics.get("city") or "sapporo")
-    nights = int(candidate.get("nights", 2))
-    flight_class = str(candidate.get("flight_class", "economy"))
-    room_type = str(candidate.get("room_type", "standard"))
-
-    cost_breakdown = calculate_itinerary_cost(
-        city=city,
-        nights=nights,
-        flight_class=flight_class,
-        room_type=room_type,
-    )
-    total_jpy = int(cost_breakdown.get("total_jpy", 0))
-    approved_limit = int(ctx.state.get("approved_limit_jpy", DEFAULT_APPROVED_LIMIT_JPY))
+    merged_plan, total_jpy, approved_limit = build_cost_plan(ctx, node_input)
 
     # 承認上限以下なら "auto_book"、超過なら "needs_approval" へ分岐
     route = "auto_book" if total_jpy <= approved_limit else "needs_approval"
-    merged_plan = {
-        **cost_breakdown,
-        "total_jpy": total_jpy,
-        "wifi_mbps": int(metrics.get("wifi_mbps", cost_breakdown.get("wifi_mbps", 100))),
-        "coworking_spaces": int(metrics.get("coworking_spaces", 0)),
-        "approved_limit_jpy": approved_limit,
-    }
-    status_line = (
+
+    status = (
         "上限内のため自動予約へ進みます。"
         if route == "auto_book"
         else f"自己承認上限（{approved_limit:,} 円）を超えるため、上長承認ゲートへ進みます。"
     )
-    summary_msg = (
-        f"見積もり結果: {merged_plan.get('display_name', city)} {nights}泊 "
-        f"（{flight_class} / {room_type}、Wi-Fi {merged_plan['wifi_mbps']} Mbps）"
-        f" 合計 {total_jpy:,} 円 — {status_line}"
+    msg = (
+        f"見積もり結果: {merged_plan.get('display_name')} {merged_plan.get('nights')}泊 "
+        f"（Wi-Fi {merged_plan['wifi_mbps']} Mbps）合計 {total_jpy:,} 円 — {status}"
     )
-    return Event(
-        content=types.Content(role="model", parts=[types.Part(text=summary_msg)]),
+    return text_event(
+        msg,
         output=merged_plan,
-        actions=EventActions(
-            route=route,
-            state_delta={"calculated_cost": merged_plan},
-        ),
+        route=route,
+        state_delta={"calculated_cost": merged_plan},
     )
 
 
-# 5. Human-in-the-Loop 上長承認タスクノード (mode="task") + Session.state 更新関数ノード
+# 4. Human-in-the-Loop 上長承認タスクノード (mode="task")
 manager_approval_task = Agent(
     name="manager_approval_task",
     model="gemini-4-hydrogen",
@@ -159,74 +112,19 @@ manager_approval_task = Agent(
     ),
 )
 
-
-def apply_approval_decision(ctx: Context, node_input: ApprovalDecision | dict[str, Any]) -> Event:
-    """上長の判断結果に基づき Session.state['approved_limit_jpy'] を更新して分岐."""
-    decision = (
-        node_input.model_dump() if isinstance(node_input, ApprovalDecision) else dict(node_input)
-    )
-    plan = dict(ctx.state.get("calculated_cost") or {})
-    is_approved = bool(decision.get("approved", False))
-    requested_total = int(plan.get("total_jpy", 250_000))
-    new_limit = int(decision.get("approved_limit_jpy") or max(requested_total, 250_000))
-    if is_approved and new_limit < requested_total:
-        new_limit = requested_total
-
-    updated_limit = new_limit if is_approved else DEFAULT_APPROVED_LIMIT_JPY
-    updated_plan = {
-        **plan,
-        "approved_limit_jpy": updated_limit,
-        "approval_decision": decision,
-    }
-    route = "approved" if is_approved else DEFAULT_ROUTE
-    msg = (
-        f"上長承認を確認しました。承認上限額を {updated_limit:,} 円に更新し、予約を実行します。"
-        if is_approved
-        else "上長承認が見送られたため、予約を実行せず再計画へ進みます。"
-    )
-    return Event(
-        content=types.Content(role="model", parts=[types.Part(text=msg)]),
-        output=updated_plan,
-        actions=EventActions(
-            route=route,
-            state_delta={
-                "approved_limit_jpy": updated_limit,
-                "approval_decision": decision,
-            },
-        ),
-    )
-
-
-def replan_notice(node_input: dict[str, Any]) -> Event:
-    """上長承認が却下された場合の代替案案内ノード."""
-    city = str(node_input.get("city", "unknown"))
-    total_jpy = int(node_input.get("total_jpy", 0))
-    msg = (
-        f"上長承認が見送られたため、{city}（合計 {total_jpy:,} 円）の予約を中止しました。"
-        "150,000 円以内の国内プラン（例: 札幌2泊 59,000 円、沖縄3泊 93,000 円）をご検討ください。"
-    )
-    return Event(
-        content=types.Content(role="model", parts=[types.Part(text=msg)]),
-        output={"status": "NEEDS_REPLAN", "city": city, "total_jpy": total_jpy, "message": msg},
-    )
-
-
-# 6. 最終予約確定エージェント (gemini-4-hydrogen + McpToolset + enforce_booking_guardrail)
+# 5. 最終予約確定エージェント (McpToolset + enforce_booking_guardrail)
 booking_agent = Agent(
     name="booking_agent",
     model="gemini-4-hydrogen",
     mode="single_turn",
-    output_schema=BookingResult,
     description="enforce_booking_guardrail の保護下で MCP 予約ツールを実行する最終エージェント",
     instruction=(
         "受け取った確定プラン（city, nights, flight_class, room_type, total_jpy）を使って、"
         "MCP ツールの `reserve_itinerary` を1回呼び出して予約を確定してください。\n"
-        "その後、予約番号（reservation_id）・都市・泊数・合計金額・Wi-Fi速度を日本語でまとめた "
-        "BookingResult を出力してください。"
+        "その後、予約番号（reservation_id）・都市・泊数・合計金額・Wi-Fi速度を、"
+        "わかりやすい日本語のマークダウン箇条書きでユーザーに報告してください。"
     ),
-    tools=[
-        create_travel_mcp_toolset(tool_filter=["reserve_itinerary"]),
-    ],
+    tools=[create_travel_mcp_toolset(tool_filter=["reserve_itinerary"])],
     before_tool_callback=enforce_booking_guardrail,
 )
 
@@ -262,3 +160,18 @@ app = App(
     root_agent=root_agent,
     resumability_config=ResumabilityConfig(is_resumable=True),
 )
+
+__all__ = [
+    "app",
+    "apply_approval_decision",
+    "booking_agent",
+    "calculate_and_route",
+    "fetch_workcation_metrics_node",
+    "fetch_workcation_metrics_step",
+    "intake_agent",
+    "join_research",
+    "manager_approval_task",
+    "replan_notice",
+    "root_agent",
+    "search_agent",
+]

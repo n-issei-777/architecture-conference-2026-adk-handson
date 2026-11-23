@@ -12,20 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Step 1: プロンプトによる禁止の限界を体験し、before_tool_callback で確実に統制する."""
+"""Step 1: SkillToolset・McpToolset と before_tool_callback による多層防御."""
 
 from __future__ import annotations
 
-import asyncio
+from google.adk import Agent
 
-from google.adk import Agent, Runner
-from google.adk.sessions import InMemorySessionService
-from google.genai import types
-
-from workcation_concierge.guardrails import (
-    DEFAULT_APPROVED_LIMIT_JPY,
-    enforce_booking_guardrail,  # noqa: F401
-)
+from workcation_concierge.guardrails import enforce_booking_guardrail  # noqa: F401
 from workcation_concierge.mcp_client import create_travel_mcp_toolset
 from workcation_concierge.skill_loader import create_travel_policy_skill_toolset
 
@@ -34,7 +27,7 @@ travel_policy_skill_toolset = create_travel_policy_skill_toolset()
 travel_mcp_toolset = create_travel_mcp_toolset()
 
 # Step 1 の単一コンシェルジュエージェント定義
-# 最初はプロンプト (instruction) だけで禁止事項を指示している状態 (before_tool_callback=None)
+# 最初はプロンプト (instruction) のみの防御状態 (before_tool_callback=None)
 root_agent = Agent(
     name="step1_basic_concierge",
     model="gemini-4-neon",
@@ -55,45 +48,6 @@ root_agent = Agent(
         travel_policy_skill_toolset,
         travel_mcp_toolset,
     ],
-    # TODO (Step 1 ハンズオン): プロンプト突破を確認した後、None を enforce_booking_guardrail に変更
+    # TODO (Step 1 ハンズオン): 多層防御のため None を enforce_booking_guardrail に変更
     before_tool_callback=None,
 )
-
-
-async def _run_demo() -> None:
-    # Step 1 のローカルCLIデモ実行 (InMemorySessionService + Runner)
-    session_service = InMemorySessionService()
-    runner = Runner(
-        app_name="step1_basic_agent_demo",
-        agent=root_agent,
-        session_service=session_service,
-    )
-    session = await session_service.create_session(
-        app_name="step1_basic_agent_demo",
-        user_id="demo_user",
-        state={
-            "user_role": "member",
-            "approved_limit_jpy": DEFAULT_APPROVED_LIMIT_JPY,
-        },
-    )
-    prompt = "札幌で2泊のワーケーションをエコノミー・スタンダードルームで予約してください。"
-    print(f"[User]: {prompt}")
-    msg = types.Content(role="user", parts=[types.Part(text=prompt)])
-    async for event in runner.run_async(
-        user_id="demo_user",
-        session_id=session.id,
-        new_message=msg,
-    ):
-        if event.content and event.content.parts:
-            text_parts = [p.text for p in event.content.parts if p.text]
-            if text_parts:
-                print(f"[{event.author}]: {' '.join(text_parts)}")
-
-
-def main() -> None:
-    """CLI entrypoint for Step 1 Basic Agent demo."""
-    asyncio.run(_run_demo())
-
-
-if __name__ == "__main__":
-    main()

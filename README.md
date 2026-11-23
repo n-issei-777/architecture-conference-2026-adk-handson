@@ -33,9 +33,10 @@ Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)**、コー�
 │   ├── mcp_server.py                    # Travel SaaS MCP サーバー (FastMCP / stdio & StreamableHTTP)
 │   ├── mcp_client.py                    # McpToolset (stdio / StreamableHTTP 切替) 接続ヘルパー
 │   ├── guardrails.py                    # before_tool_callback 決定論的ガードレイル (再計算検証付)
-│   └── skill_loader.py                  # ADK SkillToolset ローダー
+│   ├── skill_loader.py                  # ADK SkillToolset ローダー
+│   └── workflow_nodes.py                # Step 2 共通ノード・Event ヘルパー
 ├── step0_minimal_agent/                 # Step 0: 最小構成エージェント (基礎理解用)
-├── step1_basic_agent/                   # Step 1: プロンプト突破体験 & Callback 配線演習
+├── step1_basic_agent/                   # Step 1: MCP 連携 & Callback 多層防御演習
 ├── step2_starter/                       # Step 2: Workflow 実装スターター (TODO 2箇所)
 ├── step2_workflow_agent/                # Step 2 完成版 + Agent Runtime プレイグラウンド用アダプタ
 ├── eval/
@@ -70,8 +71,8 @@ uv run pytest -v
 uv run adk web . --host 0.0.0.0 --port 8080 --allow_origins '*'
 ```
 - **Step 0**: 左上のプルダウンで `step0_minimal_agent` を選択し、「札幌で2泊する場合のWi-Fi速度と費用を教えて」→「もし3泊に延ばしたらいくらになる？」と続けて質問して `Events` / `State` タブを確認します。
-- **Step 1**: `step1_basic_agent` を選択してプロンプトのみの挙動を確認した後、`step1_basic_agent/agent.py` 59 行目の `before_tool_callback=None` を `enforce_booking_guardrail` に変更し、ターミナルの `[Callback検査]` 出力と `uv run pytest tests/unit/test_guardrails.py -v` で決定論的ガードレイルを確認します。
-- **Step 2**: `uv run agents-cli setup` 実行後、`step2_starter/agent.py` の 2 つの `TODO`（118 行目の分岐と 243 行目の `Workflow` 結線）を `agy` またはエディタで実装し、札幌 2 泊（自動予約）とハワイ 4 泊（日本語チャットでの上長承認 → `Session.state` 上限更新 → 予約完了）を確認します。
+- **Step 1**: `step1_basic_agent` を選択してプロンプトのみの挙動を確認した後、`step1_basic_agent/agent.py` 52 行目の `before_tool_callback=None` を `enforce_booking_guardrail` に変更し、ターミナルの `[Callback検査]` 出力と `uv run pytest tests/unit/test_guardrails.py -v` で決定論的ガードレイルを確認します。
+- **Step 2**: Cloud Shell Editor で `step2_starter/agent.py` の 2 つの `TODO`（81 行目の分岐 1 行と 139 行目の `Workflow` エッジのコメント解除）を実装し、札幌 2 泊（自動予約）とハワイ 4 泊（日本語チャットでの上長承認 → `Session.state` 上限更新 → 予約完了）を確認します（遅れた場合は完成版 `step2_workflow_agent` にそのまま切替可能）。
 
 ### Step 3: 自動評価と Agent Runtime デプロイ・プレイグラウンド確認
 ```bash
@@ -107,3 +108,33 @@ export MCP_SERVER_URL="https://<your-cloud-run-service>.a.run.app/mcp"
 ```
 
 本番運用では Cloud Run に `--no-allow-unauthenticated` で展開し、Agent Runtime のサービスアカウントへ `roles/run.invoker` を付与して ID Token 認証で接続します。
+
+---
+
+## 5. Bonus（持ち帰りレシピ）: `agy` ＋ `agents-cli` で同等の ADK 2.0 Workflow を一括構築する
+
+本編のハンズオン完了後、ご自身の業務テーマで ADK 2.0 エージェントをゼロから立ち上げる際は、`uv run agents-cli setup` で公式 ADK スキルを導入したうえで、以下のプロンプトレシピを Antigravity（`agy`）へ渡すことで設計・実装・テスト・デプロイ準備を一括生成できます。
+
+```bash
+uv run agents-cli setup
+```
+
+```text
+Google ADK 2.0 (v2.15+) と agents-cli を使い、以下の要件を満たす本番品質の AI エージェントを Python 3.13 + uv で一括構築してください。
+
+【業務テーマ】
+- 社内旅費規定を守りながら出張・ワーケーションを調査・見積もり・予約するコンシェルジュ（ご自身の業務テーマに書き換え可）
+
+【アーキテクチャ要件】
+1. 認証・モデル: Vertex AI ADC（GOOGLE_CLOUD_LOCATION=global）を使用。対話ヒアリングは gemini-4-neon、定型検索・予約・承認タスクは gemini-4-hydrogen を採用。
+2. ツール連携: 外部予約 API は MCP サーバー（stdio / StreamableHTTP 切替対応）を McpToolset で接続。
+3. 多層防御ガードレイル: 予約実行ツールの直前に before_tool_callback を配線し、サーバー側で料金を再計算したうえで規定違反・予算超過を 100% 決定論的にブロックする。
+4. ADK 2.0 ハイブリッド Workflow:
+   - intake_agent (mode="task", output_schema=TripRequest) で不足条件を日本語対話で収集
+   - Python FunctionNode（通信環境取得）と search_agent (mode="single_turn") を並列実行し JoinNode で合流
+   - 0-LLM Python 関数 calculate_and_route で合計金額を算出し、15 万円以下なら auto_book、超過なら needs_approval へ分岐
+   - 超過時は manager_approval_task (mode="task", output_schema=ApprovalDecision) で自然言語の上長承認を受け、承認時のみ Session.state["approved_limit_jpy"] を更新して予約へ進む（却下時は DEFAULT_ROUTE で再計画案内）
+5. 品質担保・デプロイ準備:
+   - ガードレイル（過少申告ブロック含む）と Workflow 分岐の pytest 単体・結合テストを作成し、ruff / ty / pytest 全通過を確認
+   - eval/ データセット、agents-cli-manifest.yaml、Dockerfile を整備し、agents-cli eval run と agents-cli deploy --deployment-target agent_runtime でそのまま本番展開できる状態にする
+```

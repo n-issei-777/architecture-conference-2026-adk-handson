@@ -140,7 +140,7 @@
       <button class="step-btn active" onclick="goStep(0)"><span class="step-num">1</span><span>Task 1. 環境準備と Cloud Shell</span></button>
       <button class="step-btn" onclick="goStep(1)"><span class="step-num">2</span><span>Task 2. Step 0: 最小エージェント</span></button>
       <button class="step-btn" onclick="goStep(2)"><span class="step-num">3</span><span>Task 3. Step 1: MCP 連携と Callback</span></button>
-      <button class="step-btn" onclick="goStep(3)"><span class="step-num">4</span><span>Task 4. Step 2: agy と作る Workflow</span></button>
+      <button class="step-btn" onclick="goStep(3)"><span class="step-num">4</span><span>Task 4. Step 2: ADK 2.0 Workflow の構築</span></button>
       <button class="step-btn" onclick="goStep(4)"><span class="step-num">5</span><span>Task 5. Step 3: 評価と Agent Runtime</span></button>
     </nav>
 
@@ -149,7 +149,7 @@
       <section class="step-panel active">
         <div class="card">
           <h1>Task 1. ラボの開始と Cloud Shell 環境のセットアップ（10 分）</h1>
-          <p>本ハンズオンでは、<strong>Google ADK 2.0（<code>v2.15.0</code>）</strong>・最新モデル <strong>Gemini 4（<code>gemini-4-neon</code> / <code>gemini-4-hydrogen</code>）</strong>・コーディングエージェント <strong>Antigravity（<code>agy</code>）</strong>・<strong><code>agents-cli</code>（<code>v1.15.0</code>）</strong> を使い、最小エージェントから本番の Agent Runtime デプロイまでを段階的に構築します。</p>
+          <p>本ハンズオンでは、<strong>Google ADK 2.0（<code>v2.15.0</code>）</strong>・最新モデル <strong>Gemini 4（<code>gemini-4-neon</code> / <code>gemini-4-hydrogen</code>）</strong>・<strong><code>agents-cli</code>（<code>v1.15.0</code>）</strong> を使い、最小エージェントから ADK 2.0 ハイブリッド Workflow、本番の Agent Runtime デプロイまでを段階的に構築します。</p>
 
           <div class="callout warn">
             <strong>重要：シークレットウィンドウの使用</strong><br>
@@ -417,7 +417,7 @@ def create_travel_mcp_toolset(tool_filter: list[str] | None = None) -&gt; McpToo
       </div>
 
           <h2>3.1 プロンプトのみの防御（ベストエフォート）と限界を確認する</h2>
-          <p>初期状態の <code>step1_basic_agent/agent.py</code> は、システムプロンプト（日本語 <code>instruction</code>）で「一般社員によるスイートルーム・ビジネスクラス・15 万円超の予約は禁止」と指示している一方、59 行目の <code>before_tool_callback=None</code>（コードによる検査ゲートなし）になっています。</p>
+          <p>初期状態の <code>step1_basic_agent/agent.py</code> は、システムプロンプト（日本語 <code>instruction</code>）で「一般社員によるスイートルーム・ビジネスクラス・15 万円超の予約は禁止」と指示している一方、52 行目の <code>before_tool_callback=None</code>（コードによる検査ゲートなし）になっています。</p>
           <ol>
             <li>開いている ADK Web UI 左上のプルダウンを <strong><code>step1_basic_agent</code></strong> に切り替えます。</li>
             <li>まず通常の予算内予約（札幌 2 泊 = 59,000 円）が成功することを確認します：</li>
@@ -561,56 +561,14 @@ def enforce_booking_guardrail(
       <!-- STEP 3: Step 2 ADK 2.0 Workflow -->
       <section class="step-panel">
         <div class="card">
-          <h1>Task 4. Step 2 — agy と作る ADK 2.0 ハイブリッド Workflow（25 分）</h1>
+          <h1>Task 4. Step 2 — ADK 2.0 ハイブリッド Workflow の構築（25 分）</h1>
           <p>Step 1 の単一エージェント＋Callback だけでは、「15 万円以下なら即予約、<strong>15 万円を超えるハワイ合宿（242,000 円）は上長にチャットで承認を仰ぎ、承認された時だけ <code>Session.state["approved_limit_jpy"]</code> を引き上げて予約を通す</strong>」という業務フローを確実に制御できません。Step 2 では下図の <strong>ADK 2.0 ハイブリッド <code>Workflow</code></strong> を実装します。</p>
           <img class="guide-img" src="images/03_workflow_diagram.png" alt="Step 2 ADK 2.0 ハイブリッド Workflow 全体グラフ">
 
-          <h2>4.1 <code>agents-cli setup</code> で <code>agy</code> に公式 ADK スキルを導入する</h2>
-          <p>Cloud Shell の「<code>+</code>」ボタンで新しいターミナルタブを 1 つ開き、<code>agents-cli setup</code> を実行してコーディングエージェント <code>agy</code> に ADK 公式スキル群を導入します。</p>
-          
-      <div class="code-card">
-        <div class="code-header">
-          <span>Cloud Shell 新規ターミナルタブ</span>
-          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-        </div>
-        <pre><code>cd ~/architecture-conference-2026-adk-handson
-uv run agents-cli setup</code></pre>
-      </div>
-          
-      <div class="code-card output-card">
-        <div class="code-header">
-          <span>正常終了時の出力例</span>
-          <span class="ro-badge">出力例（コピー不要）</span>
-        </div>
-        <pre><code>✓ Installed Google ADK / Agent Platform skills (7 skills configured)</code></pre>
-      </div>
+          <h2>4.1 【コーディング演習】Cloud Shell Editor で <code>step2_starter/agent.py</code> の 2 つの TODO を完成させる（約 2 分）</h2>
+          <p><code>step2_starter/agent.py</code> は主要ノードと Workflow 定義だけをシンプルに整理してあり、<strong>81 行目付近（<code>TODO 課題1</code>：金額による分岐）</strong> と <strong>139 行目付近（<code>TODO 課題2</code>：<code>Workflow</code> のエッジ配線）</strong> の 2 箇所を編集するだけで完成します（万一詰まった場合は完成版 <code>step2_workflow_agent</code> にそのまま切り替えられます）。</p>
 
-          <h2>4.2 【コーディング演習】<code>step2_starter/agent.py</code> の 2 つの TODO を完成させる</h2>
-          <p><code>step2_starter/agent.py</code> には各ノードが定義済みで、<strong>118 行目（<code>TODO 課題1</code>：金額による分岐）</strong> と <strong>243 行目（<code>TODO 課題2</code>：<code>Workflow</code> のエッジ配線）</strong> の 2 箇所が空欄になっています。<strong>方法 A（<code>agy</code> で自動実装）</strong> または <strong>方法 B（エディタで貼り付け）</strong> の好きな方で完成させましょう。</p>
-
-          <h3>方法 A：<code>agy</code> にプロンプトを渡して自動実装＆テスト実行させる</h3>
-          
-      <div class="code-card">
-        <div class="code-header">
-          <span>agy への指示プロンプト</span>
-          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-        </div>
-        <pre><code>step2_starter/agent.py にある 2 つの TODO を実装して ADK 2.0 Workflow を完成させ、uv run pytest で全テストが通ることを確認してください。
-
-1. TODO (Step 2 課題1) calculate_and_route 関数内 (118行目付近):
-   total_jpy &lt;= approved_limit なら route = &quot;auto_book&quot;、超過なら route = &quot;needs_approval&quot; に分岐させてください。
-2. TODO (Step 2 課題2) root_agent = Workflow(...) の edges 定義 (243行目付近):
-   - (&quot;START&quot;, intake_agent)
-   - (intake_agent, (fetch_workcation_metrics_step, search_agent))
-   - ((fetch_workcation_metrics_step, search_agent), join_research)
-   - (join_research, calculate_and_route)
-   - (calculate_and_route, {&quot;auto_book&quot;: booking_agent, &quot;needs_approval&quot;: manager_approval_task})
-   - (manager_approval_task, apply_approval_decision)
-   - (apply_approval_decision, {&quot;approved&quot;: booking_agent, DEFAULT_ROUTE: replan_notice})</code></pre>
-      </div>
-
-          <h3>方法 B：Cloud Shell エディタで直接 Python コードを貼り付ける</h3>
-          <p>① <code>step2_starter/agent.py</code> <strong>118 行目付近</strong>（<code>calculate_and_route</code> 内の <code>route</code>）：</p>
+          <p>① <code>step2_starter/agent.py</code> <strong>81 行目付近</strong>（<code>calculate_and_route</code> 内の <code>route</code> を 1 行修正）：</p>
           
       <div class="code-card">
         <div class="code-header">
@@ -619,7 +577,7 @@ uv run agents-cli setup</code></pre>
         </div>
         <pre><code>    route = &quot;auto_book&quot; if total_jpy &lt;= approved_limit else &quot;needs_approval&quot;</code></pre>
       </div>
-          <p>② <code>step2_starter/agent.py</code> <strong>243 行目付近</strong>（<code>root_agent = Workflow(...)</code> の定義）：</p>
+          <p>② <code>step2_starter/agent.py</code> <strong>139 行目付近</strong>（<code>root_agent = Workflow(...)</code> 内のコメントアウト <code>#</code> を外して 7 エッジを配線）：</p>
           
       <div class="code-card">
         <div class="code-header">
@@ -653,7 +611,7 @@ uv run agents-cli setup</code></pre>
 )</code></pre>
       </div>
 
-          <h2>4.3 ADK Web UI で「自動予約ルート」と「自然言語の上長承認ルート」を体験する</h2>
+          <h2>4.2 ADK Web UI で「自動予約ルート」と「自然言語の上長承認ルート」を体験する</h2>
           <p><code>adk web</code> を再起動し、左上のプルダウンで <strong><code>step2_starter</code></strong>（万一詰まった場合は完成版 <strong><code>step2_workflow_agent</code></strong>）を選択します。</p>
           <p><strong>① 予算内ルート（札幌 2 泊 = 59,000 円 → 承認なしで即予約完了）：</strong></p>
           
@@ -777,6 +735,41 @@ uv run agents-cli deploy \
             <strong>お疲れさまでした！全ステップ完走です！</strong><br>
             ラボ環境は本日 21:00 JST（開始から最大 5 時間）までそのまま復習・自習にご利用いただけます。
           </div>
+
+          <h2>Bonus（持ち帰りレシピ）：<code>agy</code> ＋ <code>agents-cli</code> で同等の ADK 2.0 Workflow をゼロから一括構築する</h2>
+          <p>業務で新しい ADK 2.0 エージェントをゼロから立ち上げる際は、コーディングエージェント <strong>Antigravity（<code>agy</code>）</strong> に <code>agents-cli setup</code> で Google 公式 ADK スキル群を導入したうえで、以下の一括プロンプトレシピを渡すと、設計・実装・テスト・評価・デプロイ準備までを一気に進められます。</p>
+          
+      <div class="code-card">
+        <div class="code-header">
+          <span>事前準備（公式 ADK スキルの導入）</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><code>uv run agents-cli setup</code></pre>
+      </div>
+          
+      <div class="code-card">
+        <div class="code-header">
+          <span>agy 用・一括構築プロンプトレシピ（コピーして自分の業務テーマに書き換えて利用）</span>
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><code>Google ADK 2.0 (v2.15+) と agents-cli を使い、以下の要件を満たす本番品質の AI エージェントを Python 3.13 + uv で一括構築してください。
+
+【業務テーマ】
+- 社内旅費規定を守りながら出張・ワーケーションを調査・見積もり・予約するコンシェルジュ（ご自身の業務テーマに書き換え可）
+
+【アーキテクチャ要件】
+1. 認証・モデル: Vertex AI ADC（GOOGLE_CLOUD_LOCATION=global）を使用。対話ヒアリングは gemini-4-neon、定型検索・予約・承認タスクは gemini-4-hydrogen を採用。
+2. ツール連携: 外部予約 API は MCP サーバー（stdio / StreamableHTTP 切替対応）を McpToolset で接続。
+3. 多層防御ガードレイル: 予約実行ツールの直前に before_tool_callback を配線し、サーバー側で料金を再計算したうえで規定違反・予算超過を 100% 決定論的にブロックする。
+4. ADK 2.0 ハイブリッド Workflow:
+   - intake_agent (mode=&quot;task&quot;, output_schema=TripRequest) で不足条件を日本語対話で収集
+   - Python FunctionNode（通信環境取得）と search_agent (mode=&quot;single_turn&quot;) を並列実行し JoinNode で合流
+   - 0-LLM Python 関数 calculate_and_route で合計金額を算出し、15 万円以下なら auto_book、超過なら needs_approval へ分岐
+   - 超過時は manager_approval_task (mode=&quot;task&quot;, output_schema=ApprovalDecision) で自然言語の上長承認を受け、承認時のみ Session.state[&quot;approved_limit_jpy&quot;] を更新して予約へ進む（却下時は DEFAULT_ROUTE で再計画案内）
+5. 品質担保・デプロイ準備:
+   - ガードレイル（過少申告ブロック含む）と Workflow 分岐の pytest 単体・結合テストを作成し、ruff / ty / pytest 全通過を確認
+   - eval/ データセット、agents-cli-manifest.yaml、Dockerfile を整備し、agents-cli eval run と agents-cli deploy --deployment-target agent_runtime でそのまま本番展開できる状態にする</code></pre>
+      </div>
 
           <div class="nav-footer">
             <button class="nav-btn secondary" onclick="goStep(3)">&larr; 前のステップ</button>
