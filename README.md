@@ -80,7 +80,7 @@ uv run pytest -v
 uv run ruff check .
 uv run ty check
 
-# 経路 (Trajectory) 自動評価
+# 実行手順 (Trajectory) の自動評価
 uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workcation_eval.json
 
 # Agent Runtime へのデプロイ
@@ -120,7 +120,7 @@ uv run agents-cli setup
 ```
 
 ```text
-Google ADK 2.0 (v2.15+) と agents-cli を使い、以下の要件を満たす本番品質の AI エージェントを Python 3.13 + uv で一括構築してください。
+Google ADK 2.0 (v2.15+) と agents-cli を使い、以下の要件を満たす本番運用を見据えた AI エージェントを Python 3.13 + uv で一括構築してください。
 
 【業務テーマ】
 - 社内旅費規定を守りながら出張・ワーケーションを調査・見積もり・予約するコンシェルジュ（ご自身の業務テーマに書き換え可）
@@ -128,7 +128,7 @@ Google ADK 2.0 (v2.15+) と agents-cli を使い、以下の要件を満たす�
 【アーキテクチャ要件】
 1. 認証・モデル: Vertex AI ADC（GOOGLE_CLOUD_LOCATION=global）を使用。対話ヒアリングは gemini-4-neon、定型検索・予約・承認タスクは gemini-4-hydrogen を採用。
 2. ツール連携: 外部予約 API は MCP サーバー（stdio / StreamableHTTP 切替対応）を McpToolset で接続。
-3. 多層防御ガードレイル: 予約実行ツールの直前に before_tool_callback を配線し、サーバー側で料金を再計算したうえで規定違反・予算超過を 100% 決定論的にブロックする。
+3. 多層防御ガードレイル: 予約実行ツールの直前に before_tool_callback を設定し、サーバー側で料金を再計算したうえで規定違反・予算超過を 100% 決定論的にブロックする。
 4. ADK 2.0 ハイブリッド Workflow:
    - intake_agent (mode="task", output_schema=TripRequest) で不足条件を日本語対話で収集
    - Python FunctionNode（通信環境取得）と search_agent (mode="single_turn") を並列実行し JoinNode で合流

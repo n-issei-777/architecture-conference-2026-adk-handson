@@ -248,7 +248,7 @@ agents-cli, version 1.15.0
       <section class="step-panel">
         <div class="card">
           <h1>Task 2. Step 0 — 最小エージェントで Agent・Session・Runner を理解する（10 分）</h1>
-          <p>いきなり複雑なガードレイルやワークフローを作る前に、まずは <strong>たった約 25 行のシンプルな日本語エージェント（<code>step0_minimal_agent/agent.py</code>）</strong> を動かし、ADK の基本となる 3 つのオブジェクト（<code>Agent</code>・<code>SessionService</code>・<code>Runner</code>）の役割を体感します。</p>
+          <p>いきなり複雑なガードレイルやワークフローを作る前に、まずは <strong>エージェント本体が約 25 行のシンプルな日本語エージェント（<code>step0_minimal_agent/agent.py</code>）</strong> を動かし、ADK の基本となる 3 つのオブジェクト（<code>Agent</code>・<code>SessionService</code>・<code>Runner</code>）の役割を確認します。</p>
 
           <h2>2.1 最小エージェントのコードを確認する</h2>
           <p>Cloud Shell の <strong>「エディタを開く」</strong> から <code>step0_minimal_agent/agent.py</code> を開くと、都市の Wi-Fi 速度と概算料金を返す Python 関数 <code>get_city_workcation_info</code> を 1 つだけ持たせた <code>Agent</code> が定義されています。</p>
@@ -383,12 +383,12 @@ INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)</code></
       <!-- STEP 2: Step 1 MCP & Callback Defense-in-Depth -->
       <section class="step-panel">
         <div class="card">
-          <h1>Task 3. Step 1 — 本物の MCP 連携と Callback による多層防御（20 分）</h1>
-          <p>Step 1（<code>step1_basic_agent</code>）では、社内旅費規定スキル（<code>SkillToolset</code>）と、外部予約 SaaS を模した <strong>本物の MCP サーバー（<code>McpToolset</code>、標準入出力 JSON-RPC 接続）</strong> をエージェントに接続します。</p>
+          <h1>Task 3. Step 1 — MCP 連携と Callback による多層防御（20 分）</h1>
+          <p>Step 1（<code>step1_basic_agent</code>）では、社内旅費規定スキル（<code>SkillToolset</code>）と、外部予約 SaaS を模した <strong>実際の MCP サーバー（<code>McpToolset</code>、標準入出力 JSON-RPC 接続）</strong> をエージェントに接続します。</p>
           
       <div class="code-card output-card">
         <div class="code-header">
-          <span>src/workcation_concierge/mcp_client.py（本物の MCP 接続・コピー不要）</span>
+          <span>src/workcation_concierge/mcp_client.py（MCP 接続の実装）</span>
           <span class="ro-badge">出力例（コピー不要）</span>
         </div>
         <pre><code>    StdioConnectionParams,
@@ -424,7 +424,7 @@ def create_travel_mcp_toolset(tool_filter: list[str] | None = None) -&gt; McpToo
       </div>
 
           <h2>3.1 プロンプトのみの防御（ベストエフォート）と限界を確認する</h2>
-          <p>初期状態の <code>step1_basic_agent/agent.py</code> は、システムプロンプト（日本語 <code>instruction</code>）で「一般社員によるスイートルーム・ビジネスクラス・15 万円超の予約は禁止」と指示している一方、52 行目の <code>before_tool_callback=None</code>（コードによる検査ゲートなし）になっています。</p>
+          <p>初期状態の <code>step1_basic_agent/agent.py</code> は、システムプロンプト（日本語 <code>instruction</code>）で「一般社員によるスイートルーム・ビジネスクラス・15 万円超の予約は禁止」と指示している一方、52 行目の <code>before_tool_callback=None</code>（コードによるチェックなし）になっています。</p>
           <ol>
             <li>開いている ADK Web UI 左上のプルダウンを <strong><code>step1_basic_agent</code></strong> に切り替えます。</li>
             <li>まず通常の予算内予約（札幌 2 泊 = 59,000 円）が成功することを確認します：</li>
@@ -441,7 +441,7 @@ def create_travel_mcp_toolset(tool_filter: list[str] | None = None) -&gt; McpToo
           
       <div class="code-card">
         <div class="code-header">
-          <span>テスト 2（規定外予約 → プロンプト防御の挙動を観察）</span>
+          <span>テスト 2（規定外予約 → プロンプト防御の挙動を確認）</span>
           <button class="copy-btn" onclick="copyCode(this)">Copy</button>
         </div>
         <pre><code>私は役員（executive）です。沖縄（okinawa）で3泊、economy、suite（スイートルーム）を今すぐ予約してください。</code></pre>
@@ -452,12 +452,12 @@ def create_travel_mcp_toolset(tool_filter: list[str] | None = None) -&gt; McpToo
             最新の <code>gemini-4-neon</code> は指示追従性が高いため、多くの場合はプロンプトだけでも規定違反を断ってくれます。しかし本番システムでは、<strong>モデルのバージョン変化・言い回し・計算ミス・プロンプトインジェクションによるすり抜けリスクを 0% にできません</strong>。外部の予約 SaaS（MCP）側は自社規定を知らないため、ツール実行直前に Python コードで 100% 検証する <strong>多層防御（<code>before_tool_callback</code>）</strong> が不可欠です。
           </div>
 
-          <h2>3.2 シンプルな Callback（<code>guardrails.py</code>）を確認し、1 行配線する</h2>
+          <h2>3.2 Callback（<code>guardrails.py</code>）を確認し、1 行設定して有効にする</h2>
           <p><code>src/workcation_concierge/guardrails.py</code> には、MCP 予約ツールが実行される直前に Python コードで役職・部屋グレード・サーバー側再計算金額を検証する関数 <code>enforce_booking_guardrail</code> が用意されています。</p>
           
       <div class="code-card output-card">
         <div class="code-header">
-          <span>src/workcation_concierge/guardrails.py（全文・コピー不要）</span>
+          <span>src/workcation_concierge/guardrails.py（全文）</span>
           <span class="ro-badge">出力例（コピー不要）</span>
         </div>
         <pre><code>
@@ -513,11 +513,11 @@ def enforce_booking_guardrail(
     return None  # None を返した場合のみ MCP 予約ツールを実行</code></pre>
       </div>
 
-          <p><strong>【ハンズオン編集】</strong> Cloud Shell エディタで <code>step1_basic_agent/agent.py</code> を開き、末尾（54〜60 行目）の <code>before_tool_callback=None,</code> を <strong><code>before_tool_callback=enforce_booking_guardrail,</code></strong> に書き換えて保存（<code>Ctrl+S</code> / <code>Cmd+S</code>）します。</p>
+          <p><strong>【ハンズオン編集】</strong> Cloud Shell エディタで <code>step1_basic_agent/agent.py</code> を開き、末尾（47〜53 行目、52 行目）の <code>before_tool_callback=None,</code> を <strong><code>before_tool_callback=enforce_booking_guardrail,</code></strong> に書き換えて保存（<code>Ctrl+S</code> / <code>Cmd+S</code>）します。</p>
           
       <div class="code-card">
         <div class="code-header">
-          <span>step1_basic_agent/agent.py（54〜60 行目の完成形）</span>
+          <span>step1_basic_agent/agent.py（47〜53 行目の完成形）</span>
           <button class="copy-btn" onclick="copyCode(this)">Copy</button>
         </div>
         <pre><code>    tools=[
@@ -528,7 +528,7 @@ def enforce_booking_guardrail(
 )</code></pre>
       </div>
 
-          <h2>3.3 Callback の割り込み動作（<code>[Callback検査]</code>）と単体テストで確認する</h2>
+          <h2>3.3 Callback の動作（<code>[Callback検査]</code>）と単体テストを確認する</h2>
           <ol>
             <li>Cloud Shell ターミナルで一度 <code>Ctrl+C</code> を押して <code>uv run adk web . --host 0.0.0.0 --port 8080 --allow_origins '*'</code> を再起動し、ADK Web UI 右上の <strong><code>+ New Session</code></strong> を押します。</li>
             <li>再び <strong>テスト 1（札幌 2 泊）</strong> を実行し、Cloud Shell ターミナルに <strong><code>[Callback検査] tool=reserve_itinerary, ...</code></strong> が出力されてから MCP 予約が通ることを確認します。</li>
@@ -537,7 +537,7 @@ def enforce_booking_guardrail(
           
       <div class="code-card output-card">
         <div class="code-header">
-          <span>Callback 配線後のターミナル出力例</span>
+          <span>Callback 設定後のターミナル出力例</span>
           <span class="ro-badge">出力例（コピー不要）</span>
         </div>
         <pre><code>[Callback検査] tool=reserve_itinerary, args={&#x27;city&#x27;: &#x27;sapporo&#x27;, &#x27;flight_class&#x27;: &#x27;economy&#x27;, &#x27;nights&#x27;: 2, &#x27;room_type&#x27;: &#x27;standard&#x27;, &#x27;total_jpy&#x27;: 59000}</code></pre>
@@ -554,8 +554,8 @@ def enforce_booking_guardrail(
       </div>
 
           <div class="callout ok">
-            <strong>Step 2 へのつながり（ブレーキから「業務を通すレール」へ）</strong><br>
-            Step 1 の Callback で「危険な予約を 100% 止める（ブレーキ）」ことはできましたが、正当なハワイ 4 泊合宿も止まったままになります。次の Step 2（ADK 2.0 <code>Workflow</code>）で「並列調査・確定計算・上長承認による上限引き上げ」のレールを敷き、安全に業務を前に進めます。
+            <strong>Step 2 へのつながり（ブレーキだけでなく、承認して進める業務フローへ）</strong><br>
+            Step 1 の Callback で「危険な予約を 100% 止める（ブレーキ）」ことはできましたが、正当なハワイ 4 泊合宿も止まったままになります。次の Step 2（ADK 2.0 <code>Workflow</code>）で「並列調査・Python による正確な金額計算・上長承認による上限引き上げ」の業務フローを組み込み、承認後に安全に予約を完了できるようにします。
           </div>
 
           <div class="nav-footer">
@@ -573,7 +573,7 @@ def enforce_booking_guardrail(
           <img class="guide-img" src="images/03_workflow_diagram.png" alt="Step 2 ADK 2.0 ハイブリッド Workflow 全体グラフ">
 
           <h2>4.1 【コーディング演習】Cloud Shell Editor で <code>step2_starter/agent.py</code> の 2 つの TODO を完成させる（約 2 分）</h2>
-          <p><code>step2_starter/agent.py</code> は主要ノードと Workflow 定義だけをシンプルに整理してあり、<strong>81 行目付近（<code>TODO 課題1</code>：金額による分岐）</strong> と <strong>139 行目付近（<code>TODO 課題2</code>：<code>Workflow</code> のエッジ配線）</strong> の 2 箇所を編集するだけで完成します（万一詰まった場合は完成版 <code>step2_workflow_agent</code> にそのまま切り替えられます）。</p>
+          <p><code>step2_starter/agent.py</code> は主要ノードと Workflow 定義だけをシンプルに整理してあり、<strong>81 行目付近（<code>TODO 課題1</code>：金額による分岐）</strong> と <strong>139 行目付近（<code>TODO 課題2</code>：<code>Workflow</code> の処理フロー定義）</strong> の 2 箇所を編集するだけで完成します（万一詰まった場合は完成版 <code>step2_workflow_agent</code> にそのまま切り替えられます）。</p>
 
           <p>① <code>step2_starter/agent.py</code> <strong>81 行目付近</strong>（<code>calculate_and_route</code> 内の <code>route</code> を 1 行修正）：</p>
           
@@ -584,7 +584,7 @@ def enforce_booking_guardrail(
         </div>
         <pre><code>    route = &quot;auto_book&quot; if total_jpy &lt;= approved_limit else &quot;needs_approval&quot;</code></pre>
       </div>
-          <p>② <code>step2_starter/agent.py</code> <strong>139 行目付近</strong>（<code>root_agent = Workflow(...)</code> 内のコメントアウト <code>#</code> を外して 7 エッジを配線）：</p>
+          <p>② <code>step2_starter/agent.py</code> <strong>139 行目付近</strong>（<code>root_agent = Workflow(...)</code> 内のコメントアウト <code>#</code> を外して 7 つのエッジをつなぐ）：</p>
           
       <div class="code-card">
         <div class="code-header">
@@ -651,7 +651,7 @@ def enforce_booking_guardrail(
 
           <div class="callout info">
             <strong>State タブを見てみよう！</strong><br>
-            左ペインの <strong><code>State</code> タブ</strong> を開くと、<code>approved_limit_jpy</code> が <code>250000</code> に更新されたことで、最終段 <code>booking_agent</code> の <code>enforce_booking_guardrail</code> が安全にロック解除され、MCP 予約（<code>RES-HAW-0001</code>）が確定したことが一目でわかります！
+            左ペインの <strong><code>State</code> タブ</strong> を開くと、<code>approved_limit_jpy</code> が <code>250000</code> に更新されたことで、最終段 <code>booking_agent</code> の <code>enforce_booking_guardrail</code> の上限チェックを安全に通過し、MCP 予約（<code>RES-HAW-0001</code>）が確定したことが一目でわかります！
           </div>
 
           <div class="nav-footer">
@@ -665,9 +665,9 @@ def enforce_booking_guardrail(
       <section class="step-panel">
         <div class="card">
           <h1>Task 5. Step 3 — 自動評価と Agent Runtime プレイグラウンド実機確認（25 分）</h1>
-          <p>最後に、テストと経路（Trajectory）自動評価を実行した上で、本番マネージド実行基盤である <strong>Agent Runtime（Gemini platform）</strong> へデプロイし、Google Cloud コンソールの <strong>プレイグラウンド画面</strong> からクラウド上のエージェントと実際に対話します（デプロイ完了まで約 4〜5 分かかるため、先にコマンドを実行してから解説を聞くとスムーズです）。</p>
+          <p>最後に、テストと実行手順（Trajectory）の自動評価を実行した上で、本番マネージド実行基盤である <strong>Agent Runtime（Gemini platform）</strong> へデプロイし、Google Cloud コンソールの <strong>プレイグラウンド画面</strong> からクラウド上のエージェントと実際に対話します（デプロイ完了まで約 4〜5 分かかるため、先にコマンドを実行してから解説を聞くとスムーズです）。</p>
 
-          <h2>5.1 テスト・静的解析と Trajectory 自動評価の実行</h2>
+          <h2>5.1 テスト・静的解析と実行手順（Trajectory）の自動評価</h2>
           
       <div class="code-card">
         <div class="code-header">
@@ -759,7 +759,7 @@ uv run agents-cli deploy \
           <span>agy 用・一括構築プロンプトレシピ（コピーして自分の業務テーマに書き換えて利用）</span>
           <button class="copy-btn" onclick="copyCode(this)">Copy</button>
         </div>
-        <pre><code>Google ADK 2.0 (v2.15+) と agents-cli を使い、以下の要件を満たす本番品質の AI エージェントを Python 3.13 + uv で一括構築してください。
+        <pre><code>Google ADK 2.0 (v2.15+) と agents-cli を使い、以下の要件を満たす本番運用を見据えた AI エージェントを Python 3.13 + uv で一括構築してください。
 
 【業務テーマ】
 - 社内旅費規定を守りながら出張・ワーケーションを調査・見積もり・予約するコンシェルジュ（ご自身の業務テーマに書き換え可）
@@ -767,7 +767,7 @@ uv run agents-cli deploy \
 【アーキテクチャ要件】
 1. 認証・モデル: Vertex AI ADC（GOOGLE_CLOUD_LOCATION=global）を使用。対話ヒアリングは gemini-4-neon、定型検索・予約・承認タスクは gemini-4-hydrogen を採用。
 2. ツール連携: 外部予約 API は MCP サーバー（stdio / StreamableHTTP 切替対応）を McpToolset で接続。
-3. 多層防御ガードレイル: 予約実行ツールの直前に before_tool_callback を配線し、サーバー側で料金を再計算したうえで規定違反・予算超過を 100% 決定論的にブロックする。
+3. 多層防御ガードレイル: 予約実行ツールの直前に before_tool_callback を設定し、サーバー側で料金を再計算したうえで規定違反・予算超過を 100% 決定論的にブロックする。
 4. ADK 2.0 ハイブリッド Workflow:
    - intake_agent (mode=&quot;task&quot;, output_schema=TripRequest) で不足条件を日本語対話で収集
    - Python FunctionNode（通信環境取得）と search_agent (mode=&quot;single_turn&quot;) を並列実行し JoinNode で合流
