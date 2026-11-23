@@ -113,10 +113,15 @@ export MCP_SERVER_URL="https://<your-cloud-run-service>.a.run.app/mcp"
 
 ## 5. Bonus（持ち帰りレシピ）: `agy` ＋ `agents-cli` で同等の ADK 2.0 Workflow を一括構築する
 
-本編のハンズオン完了後、ご自身の業務テーマで ADK 2.0 エージェントをゼロから立ち上げる際は、`uv run agents-cli setup` で公式 ADK スキルを導入したうえで、以下のプロンプトレシピを Antigravity（`agy`）へ渡すことで設計・実装・テスト・デプロイ準備を一括生成できます。
+本編のハンズオン完了後、ご自身の業務テーマで ADK 2.0 エージェントをゼロから立ち上げる際は、以下の 3 ステップで **Antigravity（`agy`）** に公式 ADK スキル群を導入してからプロンプトレシピを渡してください。
+
+1. **コーディングエージェントの準備**: お手元の開発環境へ Antigravity（`agy`）（または Gemini CLI 等の対応コーディングエージェント）をインストールしてログインします（`gcloud auth application-default login`・`uv`・Node.js `npx` が使える状態にしておきます）。
+2. **公式 ADK スキルの導入**: 対象ディレクトリで `uv run agents-cli setup` を実行すると、導入済みの `agy` 等が自動検出され、公式 ADK スキル群が自動設定されます（プロジェクト単位で入れる場合は `--workspace` を付与）。
+3. **`agy` を起動してプロンプトレシピを投入**:
 
 ```bash
 uv run agents-cli setup
+agy
 ```
 
 ```text
