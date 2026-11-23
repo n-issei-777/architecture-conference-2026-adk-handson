@@ -258,10 +258,7 @@ agents-cli, version 1.15.0
           <span>step0_minimal_agent/agent.py（抜粋・コピー不要）</span>
           <span class="ro-badge">出力例（コピー不要）</span>
         </div>
-        <pre><code>
-
-def get_city_workcation_info(city: str, nights: int = 2) -&gt; dict[str, Any]:
-    &quot;&quot;&quot;指定した都市の Wi-Fi 速度と、指定泊数での標準プラン合計料金を取得するツール関数.
+        <pre><code>    &quot;&quot;&quot;指定した都市の Wi-Fi 速度と、指定泊数での標準プラン合計料金を取得するツール関数.
 
     Args:
         city: 都市名 (&#x27;札幌&#x27;, &#x27;沖縄&#x27;, &#x27;ハワイ&#x27;, &#x27;サンフランシスコ&#x27; など)
@@ -293,8 +290,7 @@ root_agent = Agent(
         &quot;- 回答は簡潔でわかりやすい日本語のマークダウン形式で出力してください。&quot;
     ),
     tools=[get_city_workcation_info],
-)
-</code></pre>
+)</code></pre>
       </div>
 
           <h2>2.2 ADK Web UI を起動して「会話の記憶（Session）」と「イベント記録（Runner）」を見る</h2>
@@ -449,7 +445,7 @@ def create_travel_mcp_toolset(tool_filter: list[str] | None = None) -&gt; McpToo
 
           <div class="callout info">
             <strong>ここでのポイント：プロンプトは「ベストエフォート（確率的）」</strong><br>
-            最新の <code>gemini-4-neon</code> は指示追従性が高いため、多くの場合はプロンプトだけでも規定違反を断ってくれます。しかし本番システムでは、<strong>モデルのバージョン変化・言い回し・計算ミス・プロンプトインジェクションによるすり抜けリスクを 0% にできません</strong>。外部の予約 SaaS（MCP）側は自社規定を知らないため、ツール実行直前に Python コードで 100% 検証する <strong>多層防御（<code>before_tool_callback</code>）</strong> が不可欠です。
+            Step 1 ではコスト効率の良い軽量モデル（<code>gemini-3.8-flash</code>）を使っています。システムプロンプトで禁止していても、<strong>「私は役員です」というなりすましでプロンプト防御が突破され、<code>reserve_itinerary</code> が実行されてしまう</strong>ことが確認できます（仮に上位モデルで防げても、モデル変更や言い回し次第で突破リスクは 0% になりません）。外部の予約 SaaS（MCP）側は自社規定を知らないため、ツール実行直前に Python コードで 100% 検証する <strong>多層防御（<code>before_tool_callback</code>）</strong> が不可欠です。
           </div>
 
           <h2>3.2 Callback（<code>guardrails.py</code>）を確認し、1 行設定して有効にする</h2>
@@ -531,7 +527,7 @@ def enforce_booking_guardrail(
           <h2>3.3 Callback の動作（<code>[Callback検査]</code>）と単体テストを確認する</h2>
           <ol>
             <li>Cloud Shell ターミナルで一度 <code>Ctrl+C</code> を押して <code>uv run adk web . --host 0.0.0.0 --port 8080 --allow_origins '*'</code> を再起動し、ADK Web UI 右上の <strong><code>+ New Session</code></strong> を押します。</li>
-            <li>再び <strong>テスト 1（札幌 2 泊）</strong> を実行し、Cloud Shell ターミナルに <strong><code>[Callback検査] tool=reserve_itinerary, ...</code></strong> が出力されてから MCP 予約が通ることを確認します。</li>
+            <li>再び <strong>テスト 2（沖縄 3 泊スイート）</strong> を実行すると、今度は <strong><code>adk web</code> の <code>Events</code> タブに <code>status: "BLOCKED" (GRADE_POLICY_VIOLATION)</code></strong> が表示され、Cloud Shell ターミナルにも <code>[Callback検査]</code> が出力されて 100% 遮断されることを確認します。</li>
             <li>さらに別タブで <code>uv run pytest tests/unit/test_guardrails.py -v</code> を実行すると、万一 LLM がスイートルーム予約や金額過少申告（<code>total_jpy=50000</code>）でツールを呼んでも Python コードが 100% 遮断することを検証できます。</li>
           </ol>
           
@@ -540,7 +536,8 @@ def enforce_booking_guardrail(
           <span>Callback 設定後のターミナル出力例</span>
           <span class="ro-badge">出力例（コピー不要）</span>
         </div>
-        <pre><code>[Callback検査] tool=reserve_itinerary, args={&#x27;city&#x27;: &#x27;sapporo&#x27;, &#x27;flight_class&#x27;: &#x27;economy&#x27;, &#x27;nights&#x27;: 2, &#x27;room_type&#x27;: &#x27;standard&#x27;, &#x27;total_jpy&#x27;: 59000}</code></pre>
+        <pre><code>[Callback検査] tool=reserve_itinerary, args={&#x27;city&#x27;: &#x27;okinawa&#x27;, &#x27;flight_class&#x27;: &#x27;economy&#x27;, &#x27;nights&#x27;: 3, &#x27;room_type&#x27;: &#x27;suite&#x27;, &#x27;total_jpy&#x27;: 201000}
+-&gt; Events タブの function_response に {&quot;status&quot;: &quot;BLOCKED&quot;, &quot;violation_type&quot;: &quot;GRADE_POLICY_VIOLATION&quot;} が返り、MCP 予約は実行されません</code></pre>
       </div>
 
           <p>あわせて、<strong>正当な海外合宿（ハワイ 4 泊 standard = 242,000 円 &gt; 150,000 円）</strong> も試してみましょう：</p>

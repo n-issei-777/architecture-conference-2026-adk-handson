@@ -53,7 +53,7 @@ def test_step0_step1_and_step2_agents_construct_with_japanese_prompts_and_mcp() 
     assert get_city_workcation_info("札幌")["city"] == "sapporo"
 
     assert isinstance(step1_root_agent, LlmAgent)
-    assert step1_root_agent.model == "gemini-4-neon"
+    assert step1_root_agent.model == "gemini-3.8-flash"
     assert "150,000" in str(step1_root_agent.instruction) or "15万円" in str(
         step1_root_agent.instruction
     )

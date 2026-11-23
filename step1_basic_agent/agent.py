@@ -30,7 +30,7 @@ travel_mcp_toolset = create_travel_mcp_toolset()
 # 最初はプロンプト (instruction) のみの防御状態 (before_tool_callback=None)
 root_agent = Agent(
     name="step1_basic_concierge",
-    model="gemini-4-neon",
+    model="gemini-3.8-flash",
     description="社内規定スキルと旅行予約MCPサーバーを連携する出張・ワーケーション手配エージェント",
     instruction=(
         "あなたは企業の出張・ワーケーション手配コンシェルジュです。\n"
