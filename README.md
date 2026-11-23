@@ -117,7 +117,7 @@ export MCP_SERVER_URL="https://<your-cloud-run-service>.a.run.app/mcp"
 
 1. **コーディングエージェントの準備**: お手元の開発環境へ Antigravity（`agy`）（または Gemini CLI 等の対応コーディングエージェント）をインストールしてログインします（`gcloud auth application-default login`・`uv`・Node.js `npx` が使える状態にしておきます）。
 2. **公式 ADK スキルの導入**: 対象ディレクトリで `uv run agents-cli setup` を実行すると、導入済みの `agy` 等が自動検出され、公式 ADK スキル群が自動設定されます（プロジェクト単位で入れる場合は `--workspace` を付与）。
-3. **`agy` を起動してプロンプトレシピを投入**:
+3. **`agy` を起動して ADC 認証を選び、プロンプトレシピを投入**: 初回起動時の認証選択画面で **Vertex AI（ADC / Application Default Credentials）** を選択したうえで、下のプロンプトレシピを貼り付けます。
 
 ```bash
 uv run agents-cli setup

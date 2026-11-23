@@ -763,7 +763,7 @@ gcloud projects add-iam-policy-binding &quot;${GOOGLE_CLOUD_PROJECT}&quot; \
           <ol>
             <li><strong>コーディングエージェントの準備</strong>：お手元の開発環境へ <strong>Antigravity（<code>agy</code>）</strong>（または Gemini CLI など対応するコーディングエージェント）をインストールし、ログインしておきます（あわせて <code>gcloud auth application-default login</code> と <code>uv</code> / Node.js <code>npx</code> が使える状態にしておきます）。</li>
             <li><strong>公式 ADK スキルの導入</strong>：対象ディレクトリで <code>uv run agents-cli setup</code> を実行すると、導入済みのコーディングエージェントが自動検出され、Google 公式の ADK 開発スキル群（設計・実装・評価・デプロイ・監視）が自動設定されます（プロジェクト単位で入れたい場合は <code>--workspace</code> を付与します）。</li>
-            <li><strong><code>agy</code> を起動してプロンプトを投入</strong>：対象ディレクトリで <code>agy</code> を開き、下のプロンプトレシピを貼り付けて実行します。</li>
+            <li><strong><code>agy</code> を起動して ADC 認証を選び、プロンプトを投入</strong>：対象ディレクトリで <code>agy</code> を起動し、初回起動時の認証選択画面で <strong>Vertex AI（ADC / Application Default Credentials）</strong> を選択したうえで、下のプロンプトレシピを貼り付けて実行します。</li>
           </ol>
           
       <div class="code-card">
