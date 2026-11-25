@@ -157,7 +157,7 @@
       <button class="step-btn" onclick="goStep(1)"><span class="step-num">2</span><span>Task 2. Step 0: 最小エージェント</span></button>
       <button class="step-btn" onclick="goStep(2)"><span class="step-num">3</span><span>Task 3. Step 1: MCP 連携と Callback</span></button>
       <button class="step-btn" onclick="goStep(3)"><span class="step-num">4</span><span>Task 4. Step 2: ADK 2.0 Workflow の構築</span></button>
-      <button class="step-btn" onclick="goStep(4)"><span class="step-num">5</span><span>Task 5. Step 3: 自動評価とデプロイ</span></button>
+      <button class="step-btn" onclick="goStep(4)"><span class="step-num">5</span><span>Task 5. Step 3: デプロイと実機確認</span></button>
     </nav>
 
     <main class="content">
@@ -212,7 +212,7 @@ echo &quot;Active Project: ${GOOGLE_CLOUD_PROJECT}&quot;</code></pre></div>
     <div class="code-card"><div class="code-head"><span>出力例 / 参照コード</span></div><pre><code>Operation &quot;operations/...&quot; finished successfully.
 Active Project: qwiklabs-gcp-01-xxxxxxxxxxxx</code></pre></div>
     <h2>1.3 ハンズオン教材のクローンと準備</h2>
-    <p>リポジトリをクローンし、uv で最新版の google-adk（v2.15.0）と google-agents-cli（v1.15.0）をインストールしてテストを実行します。</p>
+    <p>リポジトリをクローンし、uv で最新版の google-adk（v2.15.0）と google-agents-cli（v1.15.0）をインストールします。</p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>git clone https://github.com/n-issei-777/architecture-conference-2026-adk-handson.git
 cd architecture-conference-2026-adk-handson
 
@@ -221,13 +221,10 @@ sed -i &quot;s/your-gcp-project-id/${GOOGLE_CLOUD_PROJECT}/g&quot; .env
 
 uv sync --dev --index https://pypi.org/simple --python python3.13
 uv run adk --version
-uv run agents-cli --version
-uv run pytest</code></pre></div>
-    <p><strong>正常終了時の出力例（24 passed と表示されれば準備完了・コピー不要）</strong></p>
+uv run agents-cli --version</code></pre></div>
+    <p><strong>正常終了時の出力例（バージョンが表示されれば準備完了・コピー不要）</strong></p>
     <div class="code-card"><div class="code-head"><span>出力例 / 参照コード</span></div><pre><code>adk, version 2.15.0
-agents-cli, version 1.15.0
-.................                                                        [100%]
-24 passed in 21.56s</code></pre></div>
+agents-cli, version 1.15.0</code></pre></div>
     <div class="nav-footer"><span></span><button class="nav-btn" onclick="goStep(1)">次へ：Task 2. Step 0: 最小エージェント &rarr;</button></div>
   </div>
 </section><section class="step-panel">
@@ -385,8 +382,8 @@ def enforce_booking_guardrail(
     ],
     before_tool_callback=enforce_booking_guardrail,
 )</code></pre></div>
-    <h2>3.3 Callback の遮断動作とテストを確認</h2>
-    <ol><li>Cloud Shell ターミナルで Ctrl+C を押して一度停止し、もう一度 uv run adk web . --host 0.0.0.0 --port 8080 --allow_origins &#x27;*&#x27; を実行します。</li><li>ADK Web UI 右上の「+ New Session」を押し、再度「テスト 2（沖縄 3 泊スイート）」を実行すると、今度は Events タブの function_response に status: BLOCKED (GRADE_POLICY_VIOLATION) が表示され、Cloud Shell ターミナルにも [Callback検査] が出力されて遮断されることを確認できます。さらに別タブで uv run pytest tests/unit/test_guardrails.py -v を実行すると、LLM がスイートルーム予約や金額過少申告（total_jpy=50000）を試みても Python コードが遮断することを検証できます。</li></ol>
+    <h2>3.3 Callback の遮断動作を確認</h2>
+    <ol><li>Cloud Shell ターミナルで Ctrl+C を押して一度停止し、もう一度 uv run adk web . --host 0.0.0.0 --port 8080 --allow_origins &#x27;*&#x27; を実行します。</li><li>ADK Web UI 右上の「+ New Session」を押し、再度「テスト 2（沖縄 3 泊スイート）」を実行すると、今度は Events タブの function_response に status: BLOCKED (GRADE_POLICY_VIOLATION) が表示され、Cloud Shell ターミナルにも [Callback検査] が出力されて遮断されることを確認できます。</li></ol>
     <p><strong>テスト 1：規定内プラン（札幌 2 泊 = 59,000 円 → 予約成功）</strong></p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>札幌で2泊、standardルームでワーケーションを予約してください。</code></pre></div>
     <p><strong>テスト 2：規定外予約プロンプト（「+ New Session」を押してから実行。Callback のガードレイルが動作することを確認）</strong></p>
@@ -415,10 +412,6 @@ def enforce_booking_guardrail(
     <p>・EventActions(route=..., state_delta=...)：分岐先キー（route）と Session.state の更新値を返す</p>
     <p>・Workflow(edges=[...]) の 4 パターン：① 直列 (A, B)、② 並列分岐・合流 (A, (B, C)) -&gt; ((B, C), JoinNode)、③ 条件分岐 (X, {&#x27;auto_book&#x27;: B, &#x27;needs_approval&#x27;: C})、④ 既定ルート {&#x27;approved&#x27;: B, DEFAULT_ROUTE: C}</p>
     <p>step2_starter/agent.py は主要ノードと Workflow 定義だけをシンプルに整理してあります。Cloud Shell Editor で 2 箇所（83 行目の分岐 1 行と 139 行目の Workflow エッジのコメント解除）を編集して完成させましょう（万一詰まった場合は完成版 step2_workflow_agent にそのまま切り替えられます）。</p>
-    <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>cd ~/architecture-conference-2026-adk-handson
-uv run pytest -v</code></pre></div>
-    <p><strong>正常終了時の出力例（コピー不要）</strong></p>
-    <div class="code-card"><div class="code-head"><span>出力例 / 参照コード</span></div><pre><code>============================== 24 passed ==============================</code></pre></div>
     <h2>4.2 編集箇所（2 箇所）</h2>
     <p>以下の 2 箇所を Cloud Shell Editor で編集して保存します（TODO 課題 2 はコメントアウトの # を外すだけでも OK です）。</p>
     <p><strong>Cloud Shell Editor での編集内容</strong></p>
@@ -464,25 +457,14 @@ uv run pytest -v</code></pre></div>
     <div class="callout ok">確認ポイント：左ペインの State タブを開くと approved_limit_jpy が 250000 に更新されており、後段の booking_agent の before_tool_callback を無事通過して MCP 予約番号（RES-HAW-0001）が発行されます。</div>
     <img class="guide-img" src="images/doc/image10.png" alt="手順スクリーンショット">
     <div class="callout warn">注：本来であれば、申請者本人がチャット上で承認するのではなく、上長など権限を持つ承認者へメールや Google Chat・Slack 等で承認依頼を送信し、承認者の認証済みアクション（承認ボタン押下や返信 Webhook）を受けてワークフローを再開するのが本番環境におけるベストプラクティスです。ADK 2.0 では ResumabilityConfig(is_resumable=True) とAgent Runtime の永続セッション（Agent Sessions）により、一時停止した session_id を外部の承認システムや Webhook から安全に再開し、検証済みの承認結果のみを Session.state に反映できます。本ハンズオンでは 1 人で一連の動作を体験できるよう、上長役を兼ねたチャット入力で簡易再現しています。つまり承認者の本人確認は省略しており、この承認部分は Step 1 の自己申告と同じ弱さを残しています。</div>
-    <div class="nav-footer"><button class="nav-btn secondary" onclick="goStep(2)">&larr; 前のステップ</button><button class="nav-btn" onclick="goStep(4)">次へ：Task 5. Step 3: 自動評価とデプロイ &rarr;</button></div>
+    <div class="nav-footer"><button class="nav-btn secondary" onclick="goStep(2)">&larr; 前のステップ</button><button class="nav-btn" onclick="goStep(4)">次へ：Task 5. Step 3: デプロイと実機確認 &rarr;</button></div>
   </div>
 </section><section class="step-panel">
   <div class="card">
-    <h1>Task 5. Step 3: 自動評価とデプロイ</h1>
-    <p>最後に、単体・結合テストと 最終応答の自動評価を実行した上で、本番マネージド実行基盤である Agent Runtime へデプロイし、Google Cloud コンソールの「プレイグラウンド」画面からクラウド上のエージェントと対話します（デプロイには約 4〜5 分かかります）。</p>
-    <h2>5.1 テスト・静的解析と自動評価の実行</h2>
-    <p>ここでは 2 層の品質検証を行います。① pytest（24 件・0 トークン）は Callback 遮断（過少申告含む）・金額計算・分岐ロジックを決定論的に高速検証します。② agents-cli eval run はローカル ADK サーバーを起動して実 LLM＋MCP で推論トレースを取得し（generate）、eval/eval_config.yaml の評価関数 workcation_workflow_check で自動採点して HTML レポートを出力します（grade）。この評価関数は最終応答のキーワードを判定する簡易版で、ツール呼び出しの経路までは採点しません。入力データ eval/workcation_eval.json には「ケース 1：札幌 2 泊で承認なし自動予約が完了するか」「ケース 2：ハワイ 4 泊で上長承認を求めるか」の 2 ケースを定義しており、--fail-under workcation_workflow_check=1.0 で 100% 合格を品質ゲートにしています。</p>
-    <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>cd ~/architecture-conference-2026-adk-handson
-uv run pytest -v
-uv run ruff check .
-uv run ty check
-
-# 評価データセットによる自動評価の実行
-uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workcation_eval.json --config eval/eval_config.yaml --fail-under workcation_workflow_check=1.0</code></pre></div>
-    <p><strong>正常終了時の出力例</strong></p>
-    <img class="guide-img" src="images/doc/image19.png" alt="手順スクリーンショット">
-    <h2>5.2 Agent Runtime へデプロイ</h2>
-    <p>評価をパスしたワークフローを Agent Runtime へデプロイします。ローカルのインメモリ管理だったセッション（短期記憶）が、クラウド上では自動的に永続化対応のマネージド セッション（Agent Sessions）に切り替わります。</p>
+    <h1>Task 5. Step 3: デプロイと実機確認</h1>
+    <p>最後に、本番マネージド実行基盤である Agent Runtime へデプロイし、Google Cloud コンソールの「プレイグラウンド」画面からクラウド上のエージェントと対話します（デプロイには約 4〜5 分かかります）。</p>
+    <h2>5.1 Agent Runtime へデプロイ</h2>
+    <p>完成したワークフローを Agent Runtime へデプロイします。ローカルのインメモリ管理だったセッション（短期記憶）が、クラウド上では自動的に永続化対応のマネージド セッション（Agent Sessions）に切り替わります。</p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>export GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
 uv run agents-cli deploy \
   --deployment-target agent_runtime \
@@ -498,7 +480,7 @@ gcloud projects add-iam-policy-binding &quot;${GOOGLE_CLOUD_PROJECT}&quot; \
     <img class="guide-img" src="images/doc/image8.png" alt="手順スクリーンショット">
     <p><strong>正常終了時の出力例（約 4〜5 分後・コピー不要）</strong></p>
     <img class="guide-img" src="images/doc/image5.png" alt="手順スクリーンショット">
-    <h2>5.3 プレイグラウンドとトレースで実機確認</h2>
+    <h2>5.2 プレイグラウンドとトレースで実機確認</h2>
     <p>デプロイが完了したら、下図の手順でクラウド上のエージェントと直接会話してみましょう。</p>
     <ol><li>Google Cloud コンソール上部の検索バーに Deployments と入力し、検索結果の中で Gemini のロゴがついた「Deployments」をクリックします。</li></ol>
     <img class="guide-img" src="images/doc/image21.png" alt="手順スクリーンショット">
