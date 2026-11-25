@@ -232,7 +232,7 @@ agents-cli, version 1.15.0</code></pre></div>
     <h1>Step 0. 最小構成のエージェント</h1>
     <p>複雑なワークフローに入る前に、まずはエージェント本体が約 30 行の最小構成のエージェント（step0_minimal_agent/agent.py）を ADK Web UI で動かし、ADK の基本である Agent（LLM）・ツール関数・Session（会話の記憶）の働きを確認します。</p>
     <h2>Step 0-1 最小構成のエージェントのコードを確認</h2>
-    <p>Cloud Shell ツールバーの「エディタを開く（Open Editor）」をクリックして step0_minimal_agent/agent.py を開くと、都市の Wi-Fi 速度と概算料金を調べる関数 get_city_workcation_info を 1 つだけ持たせた日本語 Agent が定義されています。</p>
+    <p>Cloud Shell ツールバーの「エディタを開く（Open Editor）」をクリックして step0_minimal_agent/agent.py を開くと、都市の Wi-Fi 速度と概算料金を調べる関数 get_city_workcation_info を 1 つだけ持たせたAgent が定義されています。</p>
     <img class="guide-img" src="images/doc/image6.png" alt="手順スクリーンショット">
     <p><strong>参照コード：step0_minimal_agent/agent.py（抜粋・コピー不要）</strong></p>
     <div class="code-card"><div class="code-head"><span>出力例 / 参照コード</span></div><pre><code>def get_city_workcation_info(city: str, nights: int = 2) -&gt; dict[str, Any]:
