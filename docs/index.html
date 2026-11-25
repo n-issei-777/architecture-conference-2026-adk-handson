@@ -315,7 +315,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)</code></
         tool_filter=tool_filter,
     )</code></pre></div>
     <h2>Step 1-1 プロンプト防御の限界を確認</h2>
-    <p>初期状態の step1_basic_agent/agent.py は、システムプロンプト（日本語 instruction）で「一般社員によるスイートルーム・ビジネスクラス・15 万円超の予約は禁止」と指示している一方、53 行目の before_tool_callback=None（コードによるチェックなし）になっています。</p>
+    <p>初期状態の step1_basic_agent/agent.py は、システムプロンプト（instruction）で「一般社員によるスイートルーム・ビジネスクラス・15 万円超の予約は禁止」と指示している一方、53 行目の before_tool_callback=None（コードによるチェックなし）になっています。</p>
     <ol><li>ADK Web UI 左上のプルダウンを step1_basic_agent に切り替えます。</li><li>まず通常の予算内プラン（札幌 2 泊 = 59,000 円）を送り、予約が成功することを確認します。</li><li>続いて規定外のスイートルーム予約を依頼するテスト 2 のプロンプトを送信し、挙動を確認します。</li></ol>
     <p><strong>テスト 1：規定内プラン（札幌 2 泊 = 59,000 円 → 予約成功）</strong></p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>札幌で2泊、standardルームでワーケーションを予約してください。</code></pre></div>
@@ -453,7 +453,7 @@ def enforce_booking_guardrail(
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>ハワイで4泊、standardルームでグローバル開発合宿の手配をお願いします。</code></pre></div>
     <p><strong>以下の通り、上長承認に関してヒアリングされる。State には approved_limit_jpy: 150000が格納されている</strong></p>
     <img class="guide-img" src="images/doc/image13.png" alt="手順スクリーンショット">
-    <p><strong>上記のように「上長としてこの予算超過プランを承認しますか？新しい予算上限額もあわせて教えてください」と尋ねられたら、そのまま日本語で返信します：</strong></p>
+    <p><strong>上記のように「上長としてこの予算超過プランを承認しますか？新しい予算上限額もあわせて教えてください」と尋ねられたら、そのまま返信します：</strong></p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>承認します。新しい予算上限額を 250,000 円に引き上げてください。</code></pre></div>
     <div class="callout ok">確認ポイント：左ペインの State タブを開くと approved_limit_jpy が 250000 に更新されており、後段の booking_agent の before_tool_callback を無事通過して MCP 予約番号（RES-HAW-0001）が発行されます。</div>
     <img class="guide-img" src="images/doc/image10.png" alt="手順スクリーンショット">
