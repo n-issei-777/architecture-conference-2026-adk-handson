@@ -6,7 +6,7 @@
 
 Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)**、および **`google-agents-cli` (`v1.15.0`)** を用い、以下の 4 ステップで本番グレードの AI エージェント開発を段階的に体験します。
 
-1. **Step 0 (`step0_minimal_agent`)**: 約 25 行の最小構成エージェントで `Agent`・`SessionService`・`Runner` の基本構造を学ぶ
+1. **Step 0 (`step0_minimal_agent`)**: 約 30 行の最小構成のエージェントで `Agent`・`SessionService`・`Runner` の基本構造を学ぶ
 2. **Step 1 (`step1_basic_agent`)**: 本物の `McpToolset`（stdio 接続）と `SkillToolset` を連携し、プロンプト防御（ベストエフォート）に加えて `before_tool_callback` による決定論的な多層防御（サーバー側金額再計算検証）を配線する
 3. **Step 2 (`step2_starter` / `step2_workflow_agent`)**: Cloud Shell Editor で並列調査・0-LLM 確定金額分岐・日本語対話による上長承認タスク（`mode="task"` + `Session.state` 更新）を備えた ADK 2.0 `Workflow` を構築する
 4. **Step 3 (`eval/` & `Dockerfile`)**: `agents-cli deploy` で Agent Runtime へデプロイして Google Cloud コンソールの **プレイグラウンド（Playground）** 画面からクラウド上のエージェントと対話する
@@ -74,7 +74,7 @@ uv run adk web . --host 0.0.0.0 --port 8080 --allow_origins '*'
 ```
 - **Step 0**: 左上のプルダウンで `step0_minimal_agent` を選択し、「札幌で2泊する場合のWi-Fi速度と費用を教えて」→「もし3泊に延ばしたらいくらになる？」と続けて質問して `Events` / `State` タブを確認します。
 - **Step 1**: `step1_basic_agent` を選択してプロンプトのみの挙動を確認した後、`step1_basic_agent/agent.py` 53 行目の `before_tool_callback=None` を `enforce_booking_guardrail` に変更し、沖縄スイート予約の同じ入力が `Events` タブで `BLOCKED` になることと、`uv run pytest tests/unit/test_guardrails.py -v` で決定論的ガードレイルを確認します（Step 1 は軽量モデル `gemini-3.8-flash` を使用）。
-- **Step 2**: Cloud Shell Editor で `step2_starter/agent.py` の 2 つの `TODO`（83 行目の分岐 1 行と 139 行目の `Workflow` エッジのコメント解除）を実装し、札幌 2 泊（自動予約）とハワイ 4 泊（日本語チャットでの上長承認 → `Session.state` 上限更新 → 予約完了）を確認します（遅れた場合は完成版 `step2_workflow_agent` にそのまま切替可能）。
+- **Step 2**: Cloud Shell Editor で `step2_starter/agent.py` の 2 つの `TODO`（83 行目の分岐 1 行と 141 行目からの `Workflow` エッジのコメント解除）を実装し、札幌 2 泊（自動予約）とハワイ 4 泊（日本語チャットでの上長承認 → `Session.state` 上限更新 → 予約完了）を確認します（遅れた場合は完成版 `step2_workflow_agent` にそのまま切替可能）。
 
 ### Step 3: 自動評価と Agent Runtime デプロイ・プレイグラウンド確認
 ```bash
