@@ -154,10 +154,10 @@
   <div class="layout">
     <nav class="sidebar" id="sidebar">
       <button class="step-btn active" onclick="goStep(0)"><span class="step-num">準</span><span>準備. 環境準備と Cloud Shell</span></button>
-      <button class="step-btn" onclick="goStep(1)"><span class="step-num">0</span><span>Step 0. 最小エージェント</span></button>
-      <button class="step-btn" onclick="goStep(2)"><span class="step-num">1</span><span>Step 1. MCP 連携と Callback</span></button>
+      <button class="step-btn" onclick="goStep(1)"><span class="step-num">0</span><span>Step 0. 最小構成のエージェント</span></button>
+      <button class="step-btn" onclick="goStep(2)"><span class="step-num">1</span><span>Step 1. Callback 実装</span></button>
       <button class="step-btn" onclick="goStep(3)"><span class="step-num">2</span><span>Step 2. ADK 2.0 Workflow の構築</span></button>
-      <button class="step-btn" onclick="goStep(4)"><span class="step-num">3</span><span>Step 3. デプロイと実機確認</span></button>
+      <button class="step-btn" onclick="goStep(4)"><span class="step-num">3</span><span>Step 3. Google Cloud へのデプロイ</span></button>
     </nav>
 
     <main class="content">
@@ -225,13 +225,13 @@ uv run agents-cli --version</code></pre></div>
     <p><strong>正常終了時の出力例（バージョンが表示されれば準備完了・コピー不要）</strong></p>
     <div class="code-card"><div class="code-head"><span>出力例 / 参照コード</span></div><pre><code>adk, version 2.15.0
 agents-cli, version 1.15.0</code></pre></div>
-    <div class="nav-footer"><span></span><button class="nav-btn" onclick="goStep(1)">次へ：Step 0. 最小エージェント &rarr;</button></div>
+    <div class="nav-footer"><span></span><button class="nav-btn" onclick="goStep(1)">次へ：Step 0. 最小構成のエージェント &rarr;</button></div>
   </div>
 </section><section class="step-panel">
   <div class="card">
-    <h1>Step 0. 最小エージェント</h1>
+    <h1>Step 0. 最小構成のエージェント</h1>
     <p>複雑なワークフローに入る前に、まずはエージェント本体が約 25 行の最小構成エージェント（step0_minimal_agent/agent.py）を ADK Web UI で動かし、ADK の基本である Agent（LLM）・ツール関数・Session（会話の記憶）の働きを確認します。</p>
-    <h2>Step 0-1 最小エージェントのコードを確認</h2>
+    <h2>Step 0-1 最小構成のエージェントのコードを確認</h2>
     <p>Cloud Shell ツールバーの「エディタを開く（Open Editor）」をクリックして step0_minimal_agent/agent.py を開くと、都市の Wi-Fi 速度と概算料金を調べる関数 get_city_workcation_info を 1 つだけ持たせた日本語 Agent が定義されています。</p>
     <img class="guide-img" src="images/doc/image6.png" alt="手順スクリーンショット">
     <p><strong>参照コード：step0_minimal_agent/agent.py（抜粋・コピー不要）</strong></p>
@@ -294,11 +294,11 @@ INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)</code></
     <p><strong>2 回目の質問（都市名を省略して質問）：</strong></p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>もし3泊に延ばしたらいくらになる？</code></pre></div>
     <div class="callout ok">確認ポイント：LLM 自体は過去の会話を記憶しませんが、ADK の Session が会話履歴とツール実行結果（Events）をすべて保持して毎回渡しているため、2 回目の質問でも「札幌の 3 泊（71,000 円）」と正しく回答できます。（※途中で 401 UNAUTHENTICATED が出た場合は、Cloud Shell の別タブで gcloud auth list を実行して「承認 / Authorize」をクリックすると復旧します）</div>
-    <div class="nav-footer"><button class="nav-btn secondary" onclick="goStep(0)">&larr; 前のステップ</button><button class="nav-btn" onclick="goStep(2)">次へ：Step 1. MCP 連携と Callback &rarr;</button></div>
+    <div class="nav-footer"><button class="nav-btn secondary" onclick="goStep(0)">&larr; 前のステップ</button><button class="nav-btn" onclick="goStep(2)">次へ：Step 1. Callback 実装 &rarr;</button></div>
   </div>
 </section><section class="step-panel">
   <div class="card">
-    <h1>Step 1. MCP と Callback 防御</h1>
+    <h1>Step 1. Callback 実装</h1>
     <p>Step 1（step1_basic_agent）では、社内旅費規定スキル（SkillToolset）と、外部予約 SaaS を模した実際の MCP サーバー（McpToolset、標準入出力 JSON-RPC 接続）をエージェントに接続します。</p>
     <p><strong>参照コード：src/workcation_concierge/mcp_client.py（MCP 接続・コピー不要）</strong></p>
     <div class="code-card"><div class="code-head"><span>出力例 / 参照コード</span></div><pre><code>def create_travel_mcp_toolset(tool_filter: list[str] | None = None) -&gt; McpToolset:
@@ -457,11 +457,11 @@ def enforce_booking_guardrail(
     <div class="callout ok">確認ポイント：左ペインの State タブを開くと approved_limit_jpy が 250000 に更新されており、後段の booking_agent の before_tool_callback を無事通過して MCP 予約番号（RES-HAW-0001）が発行されます。</div>
     <img class="guide-img" src="images/doc/image10.png" alt="手順スクリーンショット">
     <div class="callout warn">注：本来であれば、申請者本人がチャット上で承認するのではなく、上長など権限を持つ承認者へメールや Google Chat・Slack 等で承認依頼を送信し、承認者の認証済みアクション（承認ボタン押下や返信 Webhook）を受けてワークフローを再開するのが本番環境におけるベストプラクティスです。ADK 2.0 では ResumabilityConfig(is_resumable=True) とAgent Runtime の永続セッション（Agent Sessions）により、一時停止した session_id を外部の承認システムや Webhook から安全に再開し、検証済みの承認結果のみを Session.state に反映できます。本ハンズオンでは 1 人で一連の動作を体験できるよう、上長役を兼ねたチャット入力で簡易再現しています。つまり承認者の本人確認は省略しており、この承認部分は Step 1 の自己申告と同じ弱さを残しています。</div>
-    <div class="nav-footer"><button class="nav-btn secondary" onclick="goStep(2)">&larr; 前のステップ</button><button class="nav-btn" onclick="goStep(4)">次へ：Step 3. デプロイと実機確認 &rarr;</button></div>
+    <div class="nav-footer"><button class="nav-btn secondary" onclick="goStep(2)">&larr; 前のステップ</button><button class="nav-btn" onclick="goStep(4)">次へ：Step 3. Google Cloud へのデプロイ &rarr;</button></div>
   </div>
 </section><section class="step-panel">
   <div class="card">
-    <h1>Step 3. デプロイと実機確認</h1>
+    <h1>Step 3. Google Cloud へのデプロイ</h1>
     <p>最後に、本番マネージド実行基盤である Agent Runtime へデプロイし、Google Cloud コンソールの「プレイグラウンド」画面からクラウド上のエージェントと対話します（デプロイには約 4〜5 分かかります）。</p>
     <h2>Step 3-1 Agent Runtime へデプロイ</h2>
     <p>完成したワークフローを Agent Runtime へデプロイします。ローカルのインメモリ管理だったセッション（短期記憶）が、クラウド上では自動的に永続化対応のマネージド セッション（Agent Sessions）に切り替わります。</p>
@@ -481,7 +481,7 @@ gcloud projects add-iam-policy-binding &quot;${GOOGLE_CLOUD_PROJECT}&quot; \
     <img class="guide-img" src="images/doc/image8.png" alt="手順スクリーンショット">
     <p><strong>正常終了時の出力例（約 4〜5 分後・コピー不要）</strong></p>
     <img class="guide-img" src="images/doc/image5.png" alt="手順スクリーンショット">
-    <h2>Step 3-2 プレイグラウンドとトレースで実機確認</h2>
+    <h2>Step 3-2 プレイグラウンドとトレースで動作確認</h2>
     <p>デプロイが完了したら、下図の手順でクラウド上のエージェントと直接会話してみましょう。</p>
     <ol><li>Google Cloud コンソール上部の検索バーに Deployments と入力し、検索結果の中で Gemini のロゴがついた「Deployments」をクリックします。</li></ol>
     <img class="guide-img" src="images/doc/image21.png" alt="手順スクリーンショット">
