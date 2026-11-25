@@ -1,5 +1,7 @@
 # Architecture Conference 2026 ハンズオン: Workcation & Smart Travel Concierge (Google ADK 2.0)
 
+> **Disclaimer**: This is not an officially supported Google product. This project is not intended for active development. Issues and contributions are handled on a best effort basis.
+
 本リポジトリは、Architecture Conference 2026 ワークショップ **「Agent Development Kit（ADK）2.0 と Google Cloud で学ぶ！AI エージェント開発」** のハンズオン教材です。
 
 Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)**、および **`google-agents-cli` (`v1.15.0`)** を用い、以下の 4 ステップで本番グレードの AI エージェント開発を段階的に体験します。

@@ -37,3 +37,4 @@ htmlcov/
 .idea/
 .vscode/
 artifacts/
+.google-agents-cli/
