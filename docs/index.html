@@ -457,7 +457,7 @@ def enforce_booking_guardrail(
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>承認します。新しい予算上限額を 250,000 円に引き上げてください。</code></pre></div>
     <div class="callout ok">確認ポイント：左ペインの State タブを開くと approved_limit_jpy が 250000 に更新されており、後段の booking_agent の before_tool_callback を無事通過して MCP 予約番号（RES-HAW-0001）が発行されます。</div>
     <img class="guide-img" src="images/doc/image10.png" alt="手順スクリーンショット">
-    <div class="callout warn">注：本来であれば、申請者本人がチャット上で承認するのではなく、上長など権限を持つ承認者へメールや Google Chat・Slack 等で承認依頼を送信し、承認者の認証済みアクション（承認ボタン押下や返信 Webhook）を受けてワークフローを再開するのが本番環境におけるベストプラクティスです。ADK 2.0 では ResumabilityConfig(is_resumable=True) とAgent Runtime の永続セッション（Agent Sessions）により、一時停止した session_id を外部の承認システムや Webhook から安全に再開し、検証済みの承認結果のみを Session.state に反映できます。本ハンズオンでは 1 人で一連の動作を体験できるよう、上長役を兼ねたチャット入力で簡易再現しています。つまり承認者の本人確認は省略しており、この承認部分は Step 1 の自己申告と同じ弱さを残しています。</div>
+    <div class="callout warn">注：本来であれば、申請者本人がチャット上で承認するのではなく、上長など権限を持つ承認者へメールや Google Chat・Slack 等で承認依頼を送信し、承認者の認証済みアクション（承認ボタン押下や返信 Webhook）を受けてワークフローを再開するのが本番環境におけるベストプラクティスです。ADK 2.0 では ResumabilityConfig(is_resumable=True) とAgent Runtime の永続セッション（Agent Sessions）により、一時停止した session_id を外部の承認システムや Webhook から安全に再開し、検証済みの承認結果のみを Session.state に反映できます。本ハンズオンでは 1 人で一連の動作を体験できるよう、上長役を兼ねたチャット入力で簡易再現しているため、実際に実装する際は承認者へのメール送信等の実装が必要になります。</div>
     <div class="nav-footer"><button class="nav-btn secondary" onclick="goStep(2)">&larr; 前のステップ</button><button class="nav-btn" onclick="goStep(4)">次へ：Step 3. Google Cloud へのデプロイ &rarr;</button></div>
   </div>
 </section><section class="step-panel">
