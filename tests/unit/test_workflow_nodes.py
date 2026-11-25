@@ -119,3 +119,39 @@ def test_apply_approval_decision_updates_limit_or_routes_to_default() -> None:
     )
     assert ev_ng.actions.route == DEFAULT_ROUTE
     assert ev_ng.actions.state_delta["approved_limit_jpy"] == 150000
+
+
+def test_cost_uses_trip_request_not_llm_relayed_candidate() -> None:
+    # search_agent (LLM) が泊数を落としても、intake の TripRequest の値で計算することを検証
+    trip = {"city": "hawaii", "nights": 4, "flight_class": "economy", "room_type": "standard"}
+    joined_input = {
+        "fetch_workcation_metrics": fetch_workcation_metrics_node(trip),
+        "search_agent": {"city": "hawaii"},
+    }
+    event = calculate_and_route(_as_ctx(_FakeContext(state={})), joined_input)
+    assert cast(dict[str, Any], event.output)["total_jpy"] == 242000
+    assert event.actions.route == "needs_approval"
+
+
+def test_previous_approval_does_not_carry_over_to_next_trip() -> None:
+    # 前の旅程で引き上げた上限が残っていても、新しい見積もりは既定上限で判定することを検証
+    trip = {"city": "hawaii", "nights": 4, "flight_class": "economy", "room_type": "standard"}
+    joined_input = {
+        "fetch_workcation_metrics": fetch_workcation_metrics_node(trip),
+        "search_agent": trip,
+    }
+    event = calculate_and_route(
+        _as_ctx(_FakeContext(state={"approved_limit_jpy": 250000})), joined_input
+    )
+    assert event.actions.route == "needs_approval"
+    assert event.actions.state_delta["approved_limit_jpy"] == 150000
+
+
+def test_approval_below_trip_total_is_not_silently_raised() -> None:
+    # 承認者の上限額が合計金額に満たない場合、上限を書き換えず再計画へ進むことを検証
+    ctx = _FakeContext(state={"calculated_cost": {"city": "hawaii", "total_jpy": 242000}})
+    event = apply_approval_decision(
+        _as_ctx(ctx), ApprovalDecision(approved=True, approved_limit_jpy=200000)
+    )
+    assert event.actions.route == DEFAULT_ROUTE
+    assert event.actions.state_delta["approved_limit_jpy"] == 150000

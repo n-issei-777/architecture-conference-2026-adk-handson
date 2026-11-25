@@ -155,3 +155,46 @@ def test_spoofed_low_total_jpy_is_recalculated_and_blocked() -> None:
     assert blocked_res["status"] == "BLOCKED"
     assert blocked_res["violation_type"] == "BUDGET_LIMIT_EXCEEDED"
     assert blocked_res["total_jpy"] == 242000
+
+
+def test_unverifiable_or_unknown_arguments_fail_closed() -> None:
+    # 再計算できない引数や未定義グレードは、申告額にかかわらず遮断することを検証
+    tool = _as_tool(_StubTool(name="reserve_itinerary"))
+    base = {
+        "city": "hawaii",
+        "nights": 4,
+        "flight_class": "economy",
+        "room_type": "standard",
+        "total_jpy": 1000,
+    }
+    for override in (
+        {"city": "paris"},
+        {"nights": 0},
+        {"flight_class": "first"},
+        {"room_type": "penthouse"},
+    ):
+        res = enforce_booking_guardrail(
+            tool=tool,
+            args={**base, **override},
+            tool_context=_as_ctx(_StubToolContext(state={})),
+        )
+        assert res is not None, override
+        assert res["status"] == "BLOCKED"
+        assert res["violation_type"] == "UNVERIFIABLE_REQUEST"
+
+
+def test_grade_check_normalizes_whitespace() -> None:
+    # 上限引き上げ後でも、空白付きの 'suite ' でグレード検査をすり抜けられないことを検証
+    res = enforce_booking_guardrail(
+        tool=_as_tool(_StubTool(name="reserve_itinerary")),
+        args={
+            "city": "okinawa",
+            "nights": 3,
+            "flight_class": "economy",
+            "room_type": "suite ",
+            "total_jpy": 201000,
+        },
+        tool_context=_as_ctx(_StubToolContext(state={"approved_limit_jpy": 250000})),
+    )
+    assert res is not None
+    assert res["violation_type"] == "GRADE_POLICY_VIOLATION"

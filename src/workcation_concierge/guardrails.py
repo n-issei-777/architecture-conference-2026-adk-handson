@@ -38,8 +38,8 @@ def enforce_booking_guardrail(
     print(f"[Callback検査] tool={tool.name}, args={args}")
     role = str(tool_context.state.get("user_role", "member")).lower()
     limit = int(tool_context.state.get("approved_limit_jpy", DEFAULT_APPROVED_LIMIT_JPY))
-    flight_class = str(args.get("flight_class", "economy")).lower()
-    room_type = str(args.get("room_type", "standard")).lower()
+    flight_class = str(args.get("flight_class", "economy")).strip().lower()
+    room_type = str(args.get("room_type", "standard")).strip().lower()
 
     # 1. 一般社員によるスイートルーム・ビジネスクラス予約をブロック
     if role != "executive" and (room_type == "suite" or flight_class == "business"):
@@ -49,19 +49,22 @@ def enforce_booking_guardrail(
             "message": "社内規定違反: 一般社員はエコノミー・スタンダードのみ予約可能。",
         }
 
-    # 2. LLMの申告額を鵜呑みにせずサーバー側で再計算した金額で上限を検証
-    claimed_total = int(args.get("total_jpy", 0))
+    # 2. LLMの申告額を鵜呑みにせず再計算。再計算できない引数は通さず遮断 (fail-closed)
     recalculated = calculate_itinerary_cost(
         city=str(args.get("city", "")),
         nights=int(args.get("nights", 0)),
         flight_class=flight_class,
         room_type=room_type,
     )
-    verified_total = (
-        max(claimed_total, int(recalculated["total_jpy"]))
-        if recalculated.get("status") == "ok"
-        else claimed_total
-    )
+    if recalculated.get("status") != "ok":
+        return {
+            "status": "BLOCKED",
+            "violation_type": "UNVERIFIABLE_REQUEST",
+            "message": f"料金を検証できない予約内容のため遮断: {recalculated.get('message', '')}",
+        }
+
+    # 3. 申告額と再計算額の大きい方で予算上限を検証
+    verified_total = max(int(args.get("total_jpy", 0)), int(recalculated["total_jpy"]))
     if verified_total > limit:
         return {
             "status": "BLOCKED",

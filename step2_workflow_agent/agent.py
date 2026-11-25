@@ -92,7 +92,7 @@ def calculate_and_route(ctx: Context, node_input: dict[str, Any]) -> Event:
         msg,
         output=merged_plan,
         route=route,
-        state_delta={"calculated_cost": merged_plan},
+        state_delta={"calculated_cost": merged_plan, "approved_limit_jpy": approved_limit},
     )
 
 

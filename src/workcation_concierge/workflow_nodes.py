@@ -70,7 +70,8 @@ def text_event(
 def fetch_workcation_metrics_node(node_input: dict[str, Any]) -> dict[str, Any]:
     """指定都市の Wi-Fi 速度とコワーキングスペース数を確定取得."""
     city = str(node_input.get("city", "sapporo"))
-    return fetch_workcation_metrics(city)
+    # 後段の確定計算が LLM を経由しない値を使えるよう、TripRequest をそのまま引き継ぐ
+    return {**fetch_workcation_metrics(city), "trip_request": dict(node_input)}
 
 
 fetch_workcation_metrics_step = FunctionNode(
@@ -87,11 +88,13 @@ def build_cost_plan(ctx: Context, node_input: dict[str, Any]) -> tuple[dict[str,
         or {}
     )
     candidate = node_input.get("search_agent") or node_input.get("fake_search_agent") or {}
+    # 泊数・クラス・部屋は intake の TripRequest を優先 (search_agent の出力は便名等の補足のみ)
+    trip = {**candidate, **(metrics.get("trip_request") or {})}
 
-    city = str(candidate.get("city") or metrics.get("city") or "sapporo")
-    nights = int(candidate.get("nights", 2))
-    flight_class = str(candidate.get("flight_class", "economy"))
-    room_type = str(candidate.get("room_type", "standard"))
+    city = str(trip.get("city") or metrics.get("city") or "sapporo")
+    nights = int(trip.get("nights", 2))
+    flight_class = str(trip.get("flight_class", "economy"))
+    room_type = str(trip.get("room_type", "standard"))
 
     cost_breakdown = calculate_itinerary_cost(
         city=city,
@@ -100,7 +103,8 @@ def build_cost_plan(ctx: Context, node_input: dict[str, Any]) -> tuple[dict[str,
         room_type=room_type,
     )
     total_jpy = int(cost_breakdown.get("total_jpy", 0))
-    approved_limit = int(ctx.state.get("approved_limit_jpy", DEFAULT_APPROVED_LIMIT_JPY))
+    # 承認は旅程ごと。過去の承認で引き上げた上限は引き継がず、既定上限で判定
+    approved_limit = DEFAULT_APPROVED_LIMIT_JPY
     merged_plan = {
         **cost_breakdown,
         "total_jpy": total_jpy,
@@ -117,11 +121,10 @@ def apply_approval_decision(ctx: Context, node_input: ApprovalDecision | dict[st
         node_input.model_dump() if isinstance(node_input, ApprovalDecision) else dict(node_input)
     )
     plan = dict(ctx.state.get("calculated_cost") or {})
-    is_approved = bool(decision.get("approved", False))
-    requested_total = int(plan.get("total_jpy", 250_000))
-    new_limit = int(decision.get("approved_limit_jpy") or max(requested_total, 250_000))
-    if is_approved and new_limit < requested_total:
-        new_limit = requested_total
+    requested_total = int(plan.get("total_jpy", 0))
+    new_limit = int(decision.get("approved_limit_jpy") or 0)
+    # 承認者の上限額が合計金額に満たない場合は、上限を書き換えず未承認として扱う
+    is_approved = bool(decision.get("approved", False)) and new_limit >= requested_total
 
     updated_limit = new_limit if is_approved else DEFAULT_APPROVED_LIMIT_JPY
     updated_plan = {
@@ -133,7 +136,7 @@ def apply_approval_decision(ctx: Context, node_input: ApprovalDecision | dict[st
     msg = (
         f"上長承認を確認しました。承認上限額を {updated_limit:,} 円に更新し、予約を実行します。"
         if is_approved
-        else "上長承認が見送られたため、予約を実行せず再計画へ進みます。"
+        else "合計金額以上の上限額での上長承認が得られなかったため、予約せず再計画へ進みます。"
     )
     return text_event(
         msg,

@@ -2,12 +2,12 @@
 
 本リポジトリは、Architecture Conference 2026 ワークショップ **「Agent Development Kit（ADK）2.0 と Google Cloud で学ぶ！AI エージェント開発」** のハンズオン教材です。
 
-Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)**、コーディングエージェント **Antigravity (`agy`)**、および **`google-agents-cli` (`v1.15.0`)** を用い、以下の 4 ステップで本番グレードの AI エージェント開発を段階的に体験します。
+Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)**、および **`google-agents-cli` (`v1.15.0`)** を用い、以下の 4 ステップで本番グレードの AI エージェント開発を段階的に体験します。
 
 1. **Step 0 (`step0_minimal_agent`)**: 約 25 行の最小構成エージェントで `Agent`・`SessionService`・`Runner` の基本構造を学ぶ
 2. **Step 1 (`step1_basic_agent`)**: 本物の `McpToolset`（stdio 接続）と `SkillToolset` を連携し、プロンプト防御（ベストエフォート）に加えて `before_tool_callback` による決定論的な多層防御（サーバー側金額再計算検証）を配線する
-3. **Step 2 (`step2_starter` / `step2_workflow_agent`)**: `agy`（またはエディタ）で並列調査・0-LLM 確定金額分岐・日本語対話による上長承認タスク（`mode="task"` + `Session.state` 更新）を備えた ADK 2.0 `Workflow` を構築する
-4. **Step 3 (`eval/` & `Dockerfile`)**: `agents-cli eval run` で経路評価を実行し、`agents-cli deploy` で Agent Runtime へデプロイして Google Cloud コンソールの **プレイグラウンド（Playground）** 画面からクラウド上のエージェントと対話する
+3. **Step 2 (`step2_starter` / `step2_workflow_agent`)**: Cloud Shell Editor で並列調査・0-LLM 確定金額分岐・日本語対話による上長承認タスク（`mode="task"` + `Session.state` 更新）を備えた ADK 2.0 `Workflow` を構築する
+4. **Step 3 (`eval/` & `Dockerfile`)**: `agents-cli eval run` で最終応答の自動評価を実行し、`agents-cli deploy` で Agent Runtime へデプロイして Google Cloud コンソールの **プレイグラウンド（Playground）** 画面からクラウド上のエージェントと対話する
 
 システムアーキテクチャの詳細設計やシーケンス図は [doc/design.md](doc/design.md) を参照してください。
 
@@ -41,7 +41,7 @@ Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)**、コー�
 ├── step2_workflow_agent/                # Step 2 完成版 + Agent Runtime プレイグラウンド用アダプタ
 ├── eval/
 │   └── workcation_eval.json             # Step 3: 自動評価データセット
-└── tests/                               # 単体テスト・結合テスト (全 19 件)
+└── tests/                               # 単体テスト・結合テスト (全 24 件)
 ```
 
 ---
@@ -80,7 +80,7 @@ uv run pytest -v
 uv run ruff check .
 uv run ty check
 
-# 実行手順 (Trajectory) の自動評価
+# 最終応答の自動評価 (キーワード判定)
 uv run agents-cli eval run --app-name step2_workflow_agent --dataset eval/workcation_eval.json --config eval/eval_config.yaml --fail-under workcation_workflow_check=1.0
 
 # Agent Runtime へのデプロイ
@@ -131,9 +131,9 @@ Google ADK 2.0 (v2.15+) と agents-cli を使い、以下の要件を満たす�
 - 社内旅費規定を守りながら出張・ワーケーションを調査・見積もり・予約するコンシェルジュ（ご自身の業務テーマに書き換え可）
 
 【アーキテクチャ要件】
-1. 認証・モデル: Vertex AI ADC（GOOGLE_CLOUD_LOCATION=global）を使用。全ノードで高速・高スループットな gemini-4-hydrogen を採用。
+1. 認証・モデル: Vertex AI ADC（GOOGLE_CLOUD_LOCATION=global）を使用。Step 0 と Step 2 は gemini-4-hydrogen、Step 1 はプロンプト防御の突破を再現しやすい軽量モデル gemini-3.8-flash を使用。
 2. ツール連携: 外部予約 API は MCP サーバー（stdio / StreamableHTTP 切替対応）を McpToolset で接続。
-3. 多層防御ガードレイル: 予約実行ツールの直前に before_tool_callback を設定し、サーバー側で料金を再計算したうえで規定違反・予算超過を 100% 決定論的にブロックする。
+3. 多層防御ガードレイル: 予約実行ツールの直前に before_tool_callback を設定し、料金を再計算したうえで規定違反・予算超過をコードで決定論的にブロックする（再計算できない引数は fail-closed で遮断）。
 4. ADK 2.0 ハイブリッド Workflow:
    - intake_agent (mode="task", output_schema=TripRequest) で不足条件を日本語対話で収集
    - Python FunctionNode（通信環境取得）と search_agent (mode="single_turn") を並列実行し JoinNode で合流

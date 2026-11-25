@@ -3,8 +3,8 @@
 ## 1. System Architecture Overview
 
 - **Models** (`GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_LOCATION=global`, Vertex AI ADC):
-  - `gemini-4-neon`: Complex reasoning and conversational task extraction (`step1_basic_agent`, `intake_agent`).
-  - `gemini-4-hydrogen`: Fast single-turn search/booking and Step 0 / approval task nodes (`step0_minimal_agent`, `search_agent`, `manager_approval_task`, `booking_agent`).
+  - `gemini-4-hydrogen`: Step 0 and all Step 2 nodes (`step0_minimal_agent`, `intake_agent`, `search_agent`, `manager_approval_task`, `booking_agent`).
+  - `gemini-3.8-flash`: Step 1 only (`step1_basic_agent`), chosen so the prompt-only guard bypass is easy to reproduce.
 - **Progressive 4-Step Learning Architecture**:
   - **Step 0 (`step0_minimal_agent/agent.py`)**: Minimal ~25-line `Agent` + 1 Python function tool (`get_city_workcation_info`) demonstrating `Agent`, `InMemorySessionService`, `Runner`, and `Event` recording.
   - **Step 1 (`step1_basic_agent/agent.py`)**: Connects `SkillToolset` (`skills/travel-policy/SKILL.md`) and real stdio `McpToolset` (`src/workcation_concierge/mcp_client.py` -> `mcp_server.py`). Uses `gemini-3.8-flash` and starts with `before_tool_callback=None` (prompt-only guard that can be bypassed by role-spoofing), then attaches `enforce_booking_guardrail` (`src/workcation_concierge/guardrails.py`) for deterministic defense-in-depth with server-side cost recalculation.
@@ -13,7 +13,7 @@
 
 ```mermaid
 flowchart LR
-    START(["START"]) --> Intake["intake_agent\n(mode='task', gemini-4-neon)"]
+    START(["START"]) --> Intake["intake_agent\n(mode='task', gemini-4-hydrogen)"]
     Intake --> Metrics["fetch_workcation_metrics\n(0-LLM FunctionNode)"]
     Intake --> Search["search_agent\n(mode='single_turn' + McpToolset)"]
     Metrics --> Join(["join_research\n(JoinNode)"])
@@ -65,6 +65,7 @@ sequenceDiagram
 
 ## 3. Production Hardening & Workshop Trade-offs
 
-- **Server-side Cost Verification (`guardrails.py`)**: `enforce_booking_guardrail` does not trust LLM-supplied `args["total_jpy"]`; it recalculates the authoritative cost via `calculate_itinerary_cost(...)` and blocks if `max(claimed, recalculated) > approved_limit_jpy`.
+- **Server-side Cost Verification (`guardrails.py`)**: `enforce_booking_guardrail` does not trust LLM-supplied `args["total_jpy"]`; it recalculates the authoritative cost via `calculate_itinerary_cost(...)` and blocks if `max(claimed, recalculated) > approved_limit_jpy`. Arguments that cannot be recalculated (unknown city, invalid nights or grade) are blocked (fail-closed). `user_role` is read only from `Session.state` (never from chat text); the workshop does not populate it, so every caller is treated as `member`.
+- **Per-trip Approval (`workflow_nodes.py`)**: `calculate_and_route` resets `approved_limit_jpy` to the default for each new estimate and computes cost from the intake `TripRequest` (not from the LLM-relayed `CandidatePlan`). `apply_approval_decision` treats an approval whose limit is below the trip total as not approved instead of raising the limit.
 - **Remote MCP Separation (`mcp_client.py` / `mcp_server.py`)**: Uses local `stdio` by default for zero-friction workshop execution, and automatically switches to `StreamableHTTPConnectionParams` when `MCP_SERVER_URL` is configured (with `stateless_http=True` and Cloud Run `TransportSecuritySettings` in `mcp_server.py`).
 - **HITL Separation of Duties**: The workshop uses conversational `mode="task"` (`manager_approval_task`) so attendees can complete the full approval loop solo in `adk web` and Cloud Console Playground. In production multi-tenant systems, pair ADK `RequestInput` with an authenticated external approval workflow (e.g., Slack / approval API with approver IAM verification) so the requester cannot self-approve.
