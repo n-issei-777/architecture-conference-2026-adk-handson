@@ -466,6 +466,7 @@ def enforce_booking_guardrail(
     <h2>5.1 Agent Runtime へデプロイ</h2>
     <p>完成したワークフローを Agent Runtime へデプロイします。ローカルのインメモリ管理だったセッション（短期記憶）が、クラウド上では自動的に永続化対応のマネージド セッション（Agent Sessions）に切り替わります。</p>
     <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>export GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
+cd ~/architecture-conference-2026-adk-handson
 uv run agents-cli deploy \
   --deployment-target agent_runtime \
   --project &quot;${GOOGLE_CLOUD_PROJECT}&quot; \
