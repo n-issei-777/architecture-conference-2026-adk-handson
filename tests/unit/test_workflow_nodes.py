@@ -19,9 +19,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, cast
 
+import pytest
 from google.adk import Context
 from google.adk.events import Event
+from google.adk.models import Gemini, LlmRequest
 from google.adk.workflow import DEFAULT_ROUTE
+from google.genai import types
 from step2_workflow_agent.agent import (
     apply_approval_decision,
     calculate_and_route,
@@ -29,6 +32,7 @@ from step2_workflow_agent.agent import (
 )
 
 from workcation_concierge.schemas import ApprovalDecision
+from workcation_concierge.workflow_nodes import gemini_model
 
 
 @dataclass
@@ -155,3 +159,30 @@ def test_approval_below_trip_total_is_not_silently_raised() -> None:
     )
     assert event.actions.route == DEFAULT_ROUTE
     assert event.actions.state_delta["approved_limit_jpy"] == 150000
+
+
+async def test_gemini_model_applies_default_low_thinking_level(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # thinking_config 未指定のリクエストに対して既定の LOW が補完されることを検証
+    async def _noop_preprocess(self: Gemini, llm_request: LlmRequest) -> None:
+        return None
+
+    monkeypatch.setattr(Gemini, "_preprocess_request", _noop_preprocess)
+    model = gemini_model("gemini-4-hydrogen")
+    req_empty = LlmRequest(model="gemini-4-hydrogen")
+    await model._preprocess_request(req_empty)
+    assert req_empty.config is not None
+    assert req_empty.config.thinking_config is not None
+    assert req_empty.config.thinking_config.thinking_level == types.ThinkingLevel.LOW
+
+    req_explicit = LlmRequest(
+        model="gemini-4-hydrogen",
+        config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MEDIUM)
+        ),
+    )
+    await model._preprocess_request(req_explicit)
+    assert req_explicit.config is not None
+    assert req_explicit.config.thinking_config is not None
+    assert req_explicit.config.thinking_config.thinking_level == types.ThinkingLevel.MEDIUM

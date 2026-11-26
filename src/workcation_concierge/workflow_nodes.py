@@ -20,7 +20,7 @@ from typing import Any
 
 from google.adk import Context, Event
 from google.adk.events import EventActions
-from google.adk.models import Gemini
+from google.adk.models import Gemini, LlmRequest
 from google.adk.workflow import DEFAULT_ROUTE, FunctionNode
 from google.genai import types
 
@@ -42,9 +42,35 @@ DEFAULT_RETRY_OPTIONS = types.HttpRetryOptions(
 )
 
 
-def gemini_model(model_name: str = "gemini-4-hydrogen") -> Gemini:
-    """429/503 リトライ設定付きの Gemini モデルオブジェクトを生成."""
-    return Gemini(model=model_name, retry_options=DEFAULT_RETRY_OPTIONS)
+# ワークショップ実行時の応答レイテンシ安定化のため既定 thinking_level を LOW に設定
+DEFAULT_THINKING_LEVEL = types.ThinkingLevel.LOW
+
+
+class _DefaultThinkingGemini(Gemini):
+    """thinking_config 未指定のリクエストに既定の thinking_level を補完する Gemini."""
+
+    default_thinking_level: types.ThinkingLevel = DEFAULT_THINKING_LEVEL
+
+    async def _preprocess_request(self, llm_request: LlmRequest) -> None:
+        await super()._preprocess_request(llm_request)
+        if llm_request.config is None:
+            llm_request.config = types.GenerateContentConfig()
+        if llm_request.config.thinking_config is None:
+            llm_request.config.thinking_config = types.ThinkingConfig(
+                thinking_level=self.default_thinking_level
+            )
+
+
+def gemini_model(
+    model_name: str = "gemini-4-hydrogen",
+    thinking_level: types.ThinkingLevel = DEFAULT_THINKING_LEVEL,
+) -> Gemini:
+    """429/503 リトライと既定 thinking_level (LOW) 付きの Gemini モデルオブジェクトを生成."""
+    return _DefaultThinkingGemini(
+        model=model_name,
+        retry_options=DEFAULT_RETRY_OPTIONS,
+        default_thinking_level=thinking_level,
+    )
 
 
 def text_event(
