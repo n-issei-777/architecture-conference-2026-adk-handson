@@ -46,11 +46,11 @@ intake_agent = Agent(
     description="ユーザーとの対話から出張・ワーケーションの希望条件を収集するタスクノード",
     instruction=(
         "# タスク\n"
-        "ユーザーの入力から行き先都市（'sapporo', 'okinawa', 'hawaii', 'san_francisco'）、"
-        "宿泊数（nights）、航空機クラス（既定 'economy'）、客室グレード（既定 'standard'）を"
-        "抽出してください。\n"
-        "- 行き先や泊数がまだ不明な場合は、丁寧な日本語で質問してください。\n"
-        "- 必要な情報が揃ったら TripRequest にセットして finish_task を呼んでください。"
+        "ユーザーの入力から行き先都市（TripRequest の対応都市キー）、宿泊数（nights）、"
+        "航空機クラス（既定 'economy'）、客室グレード（既定 'standard'）を抽出してください。\n"
+        "- 未対応都市や一般質問・条件不足の場合は、対応都市一覧を添えて丁寧に日本語で案内・質問"
+        "してください。\n"
+        "- 対応都市と泊数が揃ったら TripRequest にセットして finish_task を呼んでください。"
     ),
 )
 

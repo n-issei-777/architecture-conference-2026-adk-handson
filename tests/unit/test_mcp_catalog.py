@@ -16,7 +16,10 @@
 
 from __future__ import annotations
 
+from typing import get_args
+
 import pytest
+from pydantic import ValidationError
 
 from workcation_concierge.mcp_server import (
     CLEAR_RESERVATIONS_FOR_TEST,
@@ -27,6 +30,7 @@ from workcation_concierge.mcp_server import (
     search_flights,
     search_hotels,
 )
+from workcation_concierge.schemas import SupportedCity, TripRequest
 
 
 @pytest.fixture(autouse=True)
@@ -121,3 +125,84 @@ def test_reserve_itinerary_and_get_reservations() -> None:
     assert history["status"] == "ok"
     assert len(history["reservations"]) == 1
     assert history["reservations"][0]["city"] == "sapporo"
+
+
+def test_expanded_domestic_and_international_cities_catalog() -> None:
+    # 追加した国内8都市は2泊標準プランが自己承認上限(150,000円)以下であることを検証
+    domestic_cities = (
+        "tokyo",
+        "osaka",
+        "kyoto",
+        "fukuoka",
+        "nagoya",
+        "sendai",
+        "kanazawa",
+        "karuizawa",
+    )
+    for city in domestic_cities:
+        assert search_flights(city)["status"] == "ok"
+        assert search_hotels(city)["status"] == "ok"
+        metrics = fetch_workcation_metrics(city)
+        assert metrics["status"] == "ok"
+        assert metrics["wifi_mbps"] >= 50
+        cost = calculate_itinerary_cost(city=city, nights=2)
+        assert cost["status"] == "ok"
+        assert cost["total_jpy"] <= 150000
+
+    # 追加した海外6都市は4泊標準プランが自己承認上限(150,000円)を超過することを検証
+    international_cities = (
+        "seoul",
+        "taipei",
+        "bangkok",
+        "singapore",
+        "london",
+        "new_york",
+    )
+    for city in international_cities:
+        assert search_flights(city)["status"] == "ok"
+        assert search_hotels(city)["status"] == "ok"
+        metrics = fetch_workcation_metrics(city)
+        assert metrics["status"] == "ok"
+        assert metrics["wifi_mbps"] >= 50
+        cost = calculate_itinerary_cost(city=city, nights=4)
+        assert cost["status"] == "ok"
+        assert cost["total_jpy"] > 150000
+
+
+def test_japanese_and_code_city_aliases_resolve() -> None:
+    # 追加都市の日本語表記や空港・都市コードの正規化を検証
+    alias_cases = {
+        "東京": "tokyo",
+        "大阪": "osaka",
+        "京都": "kyoto",
+        "博多": "fukuoka",
+        "名古屋": "nagoya",
+        "仙台": "sendai",
+        "金沢": "kanazawa",
+        "軽井沢": "karuizawa",
+        "ソウル": "seoul",
+        "台北": "taipei",
+        "バンコク": "bangkok",
+        "シンガポール": "singapore",
+        "ロンドン": "london",
+        "ニューヨーク": "new_york",
+        "NYC": "new_york",
+    }
+    for raw_name, expected_key in alias_cases.items():
+        metrics = fetch_workcation_metrics(raw_name)
+        assert metrics["status"] == "ok", raw_name
+        assert metrics["city"] == expected_key
+
+
+def test_trip_request_city_matches_catalog_and_rejects_unknown() -> None:
+    # TripRequest.city の対応都市集合が MCP カタログと一致し、未対応都市を拒否することを検証
+    err = search_flights("atlantis")
+    supported = set(err["supported_cities"])
+    assert set(get_args(SupportedCity)) == supported
+
+    for city in supported:
+        req = TripRequest(city=city, nights=2)
+        assert req.city == city
+
+    with pytest.raises(ValidationError):
+        TripRequest.model_validate({"city": "atlantis", "nights": 2})

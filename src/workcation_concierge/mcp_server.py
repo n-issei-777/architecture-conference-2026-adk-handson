@@ -119,6 +119,314 @@ _CITY_CATALOG: dict[str, dict[str, Any]] = {
             },
         },
     },
+    "tokyo": {
+        "display_name": "Tokyo",
+        "wifi_mbps": 200,
+        "coworking_spaces": 45,
+        "timezone_offset": "UTC+9",
+        "flights": {
+            "economy": {"flight_code": "NH-001", "round_trip_jpy": 24000},
+            "business": {"flight_code": "NH-001-C", "round_trip_jpy": 58000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Tokyo Tech Work Hub Hotel",
+                "per_night_jpy": 18000,
+                "wifi_mbps": 200,
+            },
+            "suite": {
+                "hotel_name": "Tokyo Bay Executive Suite",
+                "per_night_jpy": 55000,
+                "wifi_mbps": 250,
+            },
+        },
+    },
+    "osaka": {
+        "display_name": "Osaka",
+        "wifi_mbps": 150,
+        "coworking_spaces": 24,
+        "timezone_offset": "UTC+9",
+        "flights": {
+            "economy": {"flight_code": "JL-107", "round_trip_jpy": 26000},
+            "business": {"flight_code": "JL-107-C", "round_trip_jpy": 62000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Osaka Umeda Workcation Hotel",
+                "per_night_jpy": 14000,
+                "wifi_mbps": 150,
+            },
+            "suite": {
+                "hotel_name": "Osaka Imperial Sky Suite",
+                "per_night_jpy": 46000,
+                "wifi_mbps": 180,
+            },
+        },
+    },
+    "kyoto": {
+        "display_name": "Kyoto",
+        "wifi_mbps": 130,
+        "coworking_spaces": 16,
+        "timezone_offset": "UTC+9",
+        "flights": {
+            "economy": {"flight_code": "JL-109", "round_trip_jpy": 28000},
+            "business": {"flight_code": "JL-109-C", "round_trip_jpy": 65000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Kyoto Machiya Work Retreat",
+                "per_night_jpy": 16000,
+                "wifi_mbps": 130,
+            },
+            "suite": {
+                "hotel_name": "Kyoto Higashiyama Villa Suite",
+                "per_night_jpy": 50000,
+                "wifi_mbps": 160,
+            },
+        },
+    },
+    "fukuoka": {
+        "display_name": "Fukuoka",
+        "wifi_mbps": 160,
+        "coworking_spaces": 20,
+        "timezone_offset": "UTC+9",
+        "flights": {
+            "economy": {"flight_code": "NH-245", "round_trip_jpy": 34000},
+            "business": {"flight_code": "NH-245-C", "round_trip_jpy": 78000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Fukuoka Tenjin Startup Hotel",
+                "per_night_jpy": 13000,
+                "wifi_mbps": 160,
+            },
+            "suite": {
+                "hotel_name": "Fukuoka Hakata Executive Suite",
+                "per_night_jpy": 42000,
+                "wifi_mbps": 200,
+            },
+        },
+    },
+    "nagoya": {
+        "display_name": "Nagoya",
+        "wifi_mbps": 140,
+        "coworking_spaces": 15,
+        "timezone_offset": "UTC+9",
+        "flights": {
+            "economy": {"flight_code": "NH-085", "round_trip_jpy": 22000},
+            "business": {"flight_code": "NH-085-C", "round_trip_jpy": 54000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Nagoya Station Business Lounge Hotel",
+                "per_night_jpy": 12000,
+                "wifi_mbps": 140,
+            },
+            "suite": {
+                "hotel_name": "Nagoya Central Tower Suite",
+                "per_night_jpy": 38000,
+                "wifi_mbps": 170,
+            },
+        },
+    },
+    "sendai": {
+        "display_name": "Sendai",
+        "wifi_mbps": 125,
+        "coworking_spaces": 10,
+        "timezone_offset": "UTC+9",
+        "flights": {
+            "economy": {"flight_code": "JL-2201", "round_trip_jpy": 26000},
+            "business": {"flight_code": "JL-2201-C", "round_trip_jpy": 60000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Sendai Mori-no-Miyako Work Hotel",
+                "per_night_jpy": 11000,
+                "wifi_mbps": 125,
+            },
+            "suite": {
+                "hotel_name": "Sendai Grand Executive Suite",
+                "per_night_jpy": 36000,
+                "wifi_mbps": 150,
+            },
+        },
+    },
+    "kanazawa": {
+        "display_name": "Kanazawa",
+        "wifi_mbps": 115,
+        "coworking_spaces": 9,
+        "timezone_offset": "UTC+9",
+        "flights": {
+            "economy": {"flight_code": "NH-751", "round_trip_jpy": 30000},
+            "business": {"flight_code": "NH-751-C", "round_trip_jpy": 68000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Kanazawa Heritage Work Hotel",
+                "per_night_jpy": 13000,
+                "wifi_mbps": 115,
+            },
+            "suite": {
+                "hotel_name": "Kanazawa Kenroku Villa Suite",
+                "per_night_jpy": 42000,
+                "wifi_mbps": 140,
+            },
+        },
+    },
+    "karuizawa": {
+        "display_name": "Karuizawa",
+        "wifi_mbps": 100,
+        "coworking_spaces": 8,
+        "timezone_offset": "UTC+9",
+        "flights": {
+            "economy": {"flight_code": "EX-511", "round_trip_jpy": 14000},
+            "business": {"flight_code": "EX-511-C", "round_trip_jpy": 32000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Karuizawa Forest Work Lodge",
+                "per_night_jpy": 19000,
+                "wifi_mbps": 100,
+            },
+            "suite": {
+                "hotel_name": "Karuizawa Highland Resort Suite",
+                "per_night_jpy": 54000,
+                "wifi_mbps": 130,
+            },
+        },
+    },
+    "seoul": {
+        "display_name": "Seoul",
+        "wifi_mbps": 220,
+        "coworking_spaces": 32,
+        "timezone_offset": "UTC+9",
+        "flights": {
+            "economy": {"flight_code": "KE-704", "round_trip_jpy": 72000},
+            "business": {"flight_code": "KE-704-C", "round_trip_jpy": 185000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Seoul Gangnam Tech Hub Hotel",
+                "per_night_jpy": 22000,
+                "wifi_mbps": 220,
+            },
+            "suite": {
+                "hotel_name": "Seoul Namsan Executive Suite",
+                "per_night_jpy": 68000,
+                "wifi_mbps": 260,
+            },
+        },
+    },
+    "taipei": {
+        "display_name": "Taipei",
+        "wifi_mbps": 170,
+        "coworking_spaces": 22,
+        "timezone_offset": "UTC+8",
+        "flights": {
+            "economy": {"flight_code": "BR-197", "round_trip_jpy": 78000},
+            "business": {"flight_code": "BR-197-C", "round_trip_jpy": 195000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Taipei Xinyi Digital Nomad Hotel",
+                "per_night_jpy": 21000,
+                "wifi_mbps": 170,
+            },
+            "suite": {
+                "hotel_name": "Taipei 101 View Penthouse Suite",
+                "per_night_jpy": 64000,
+                "wifi_mbps": 200,
+            },
+        },
+    },
+    "bangkok": {
+        "display_name": "Bangkok",
+        "wifi_mbps": 145,
+        "coworking_spaces": 26,
+        "timezone_offset": "UTC+7",
+        "flights": {
+            "economy": {"flight_code": "TG-641", "round_trip_jpy": 95000},
+            "business": {"flight_code": "TG-641-C", "round_trip_jpy": 260000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Bangkok Sukhumvit Work Hotel",
+                "per_night_jpy": 18000,
+                "wifi_mbps": 145,
+            },
+            "suite": {
+                "hotel_name": "Bangkok Chao Phraya Grand Suite",
+                "per_night_jpy": 58000,
+                "wifi_mbps": 180,
+            },
+        },
+    },
+    "singapore": {
+        "display_name": "Singapore",
+        "wifi_mbps": 210,
+        "coworking_spaces": 30,
+        "timezone_offset": "UTC+8",
+        "flights": {
+            "economy": {"flight_code": "SQ-637", "round_trip_jpy": 115000},
+            "business": {"flight_code": "SQ-637-C", "round_trip_jpy": 320000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "Singapore Marina Tech Hotel",
+                "per_night_jpy": 30000,
+                "wifi_mbps": 210,
+            },
+            "suite": {
+                "hotel_name": "Singapore Bayfront Executive Suite",
+                "per_night_jpy": 90000,
+                "wifi_mbps": 250,
+            },
+        },
+    },
+    "london": {
+        "display_name": "London",
+        "wifi_mbps": 165,
+        "coworking_spaces": 38,
+        "timezone_offset": "UTC+0",
+        "flights": {
+            "economy": {"flight_code": "BA-006", "round_trip_jpy": 210000},
+            "business": {"flight_code": "BA-006-C", "round_trip_jpy": 560000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "London Shoreditch Work Inn",
+                "per_night_jpy": 38000,
+                "wifi_mbps": 165,
+            },
+            "suite": {
+                "hotel_name": "London Mayfair Executive Suite",
+                "per_night_jpy": 110000,
+                "wifi_mbps": 200,
+            },
+        },
+    },
+    "new_york": {
+        "display_name": "New York",
+        "wifi_mbps": 190,
+        "coworking_spaces": 42,
+        "timezone_offset": "UTC-5",
+        "flights": {
+            "economy": {"flight_code": "JL-006", "round_trip_jpy": 220000},
+            "business": {"flight_code": "JL-006-C", "round_trip_jpy": 590000},
+        },
+        "hotels": {
+            "standard": {
+                "hotel_name": "New York Midtown Workcation Hotel",
+                "per_night_jpy": 42000,
+                "wifi_mbps": 190,
+            },
+            "suite": {
+                "hotel_name": "New York Manhattan Sky Suite",
+                "per_night_jpy": 120000,
+                "wifi_mbps": 230,
+            },
+        },
+    },
 }
 
 # 都市名の表記ゆれ正規化マップ
@@ -138,6 +446,70 @@ _CITY_ALIASES: dict[str, str] = {
     "san francisco": "san_francisco",
     "sfo": "san_francisco",
     "サンフランシスコ": "san_francisco",
+    "tokyo": "tokyo",
+    "東京": "tokyo",
+    "東京都": "tokyo",
+    "tyo": "tokyo",
+    "osaka": "osaka",
+    "大阪": "osaka",
+    "大阪府": "osaka",
+    "osa": "osaka",
+    "kyoto": "kyoto",
+    "京都": "kyoto",
+    "京都府": "kyoto",
+    "fukuoka": "fukuoka",
+    "hakata": "fukuoka",
+    "福岡": "fukuoka",
+    "福岡県": "fukuoka",
+    "博多": "fukuoka",
+    "fuk": "fukuoka",
+    "nagoya": "nagoya",
+    "名古屋": "nagoya",
+    "愛知": "nagoya",
+    "愛知県": "nagoya",
+    "ngo": "nagoya",
+    "sendai": "sendai",
+    "仙台": "sendai",
+    "宮城": "sendai",
+    "宮城県": "sendai",
+    "kanazawa": "kanazawa",
+    "金沢": "kanazawa",
+    "石川": "kanazawa",
+    "石川県": "kanazawa",
+    "karuizawa": "karuizawa",
+    "軽井沢": "karuizawa",
+    "長野": "karuizawa",
+    "長野県": "karuizawa",
+    "seoul": "seoul",
+    "korea": "seoul",
+    "ソウル": "seoul",
+    "韓国": "seoul",
+    "icn": "seoul",
+    "taipei": "taipei",
+    "taiwan": "taipei",
+    "台北": "taipei",
+    "台湾": "taipei",
+    "tpe": "taipei",
+    "bangkok": "bangkok",
+    "thailand": "bangkok",
+    "バンコク": "bangkok",
+    "タイ": "bangkok",
+    "bkk": "bangkok",
+    "singapore": "singapore",
+    "シンガポール": "singapore",
+    "sin": "singapore",
+    "london": "london",
+    "uk": "london",
+    "ロンドン": "london",
+    "イギリス": "london",
+    "英国": "london",
+    "lhr": "london",
+    "new_york": "new_york",
+    "new york": "new_york",
+    "nyc": "new_york",
+    "ny": "new_york",
+    "jfk": "new_york",
+    "ニューヨーク": "new_york",
 }
 
 # インメモリ予約台帳
