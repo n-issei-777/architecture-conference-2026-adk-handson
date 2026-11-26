@@ -147,7 +147,7 @@
       <span class="badge">ADK 2.0 Hands-On</span>
       <span>Agent Development Kit (ADK) 2.0 と Google Cloud で学ぶ！AI エージェント開発</span>
     </div>
-    <span class="pill">所要時間: 90 分（ラボ 3 時間 30 分開放）</span>
+    <span class="pill">所要時間: 90 分（ラボ 15:30 - 23:30 JST 開放）</span>
   </header>
   <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
 
@@ -165,6 +165,7 @@
   <div class="card">
     <h1>準備. 環境セットアップ</h1>
     <p>本ハンズオンでは、Google Cloud のオープンソース フレームワークである Agent Development Kit (ADK) 2.0（v2.15.0）、最新モデル Gemini 4（gemini-4-hydrogen）と軽量モデル gemini-3.8-flash、およびライフサイクル管理 CLI である agents-cli（v1.15.0）を組み合わせ、最小構成の AI エージェントから本番運用を見据えたワークフロー構築・クラウド展開までを段階的に体験します。</p>
+    <p><strong>ラボの利用時間について：</strong>セッション終了後の復習・自習にも使えるよう、ラボ環境は当日は 23:30 JST まで（15:30 - 23:30 JST）開放されています。</p>
     
           <div class="callout info">
             <strong>はじめに：Qwiklabs にアクセスして本日のラボを開く</strong>
@@ -394,7 +395,7 @@ def enforce_booking_guardrail(
     <p>ターミナル上では以下の通り、Callback 関数が実行されていることがわかります。</p>
     <img class="guide-img" src="images/doc/image11.png" alt="手順スクリーンショット">
     <p><strong>あわせて、正当な海外合宿（ハワイ 4 泊 standard = 242,000 円 &gt; 150,000 円）も試してみましょう：</strong></p>
-    <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>ハワイ（hawaii）で4泊、standardルームで開発合宿を予約してください。</code></pre></div>
+    <div class="code-card"><div class="code-head"><span>コマンド / 入力</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre><code>ハワイで4泊、standardルームで開発合宿を予約してください。</code></pre></div>
     <p>ハワイについては15万円を超えるものの、economy / standard であれば上長承認を得れば予約できる、正当な業務依頼ですが、金額が超過したことにより、ブロックされます。</p>
     <img class="guide-img" src="images/doc/image3.png" alt="手順スクリーンショット">
     <p>結果、Callback で「規定違反の予約をコードで止める」ことはできましたが、正当なハワイ 4 泊合宿も止まったままになります。次の Step 2（ADK 2.0 Workflow）で「並列調査・Python による正確な金額計算・上長承認による上限引き上げ」の業務フローを組み込み、承認後に予約を完了できるようにします。</p>
