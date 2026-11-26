@@ -20,11 +20,34 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+SupportedCity = Literal[
+    "sapporo",
+    "okinawa",
+    "hawaii",
+    "san_francisco",
+    "tokyo",
+    "osaka",
+    "kyoto",
+    "fukuoka",
+    "nagoya",
+    "sendai",
+    "kanazawa",
+    "karuizawa",
+    "seoul",
+    "taipei",
+    "bangkok",
+    "singapore",
+    "london",
+    "new_york",
+]
+
 
 class TripRequest(BaseModel):
     """ユーザー入力から抽出する出張・ワーケーション希望条件."""
 
-    city: str = Field(description="行き先都市 ('sapporo', 'okinawa', 'hawaii', 'san_francisco')")
+    city: SupportedCity = Field(
+        description="行き先都市キー (例: 'sapporo', 'okinawa', 'tokyo', 'hawaii', 'new_york')"
+    )
     nights: int = Field(
         default=2,
         ge=1,
