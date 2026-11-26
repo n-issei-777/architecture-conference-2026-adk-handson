@@ -411,7 +411,13 @@ def enforce_booking_guardrail(
     <p>・mode=&#x27;single_turn&#x27;：1 ターンで検索や予約を完結（search_agent, booking_agent）</p>
     <p>・FunctionNode / JoinNode：LLM を使わず 0 トークンで Python 確定処理や並列合流を実行</p>
     <p>・EventActions(route=..., state_delta=...)：分岐先キー（route）と Session.state の更新値を返す</p>
-    <p>・Workflow(edges=[...]) の 4 パターン：① 直列 (A, B)、② 並列分岐・合流 (A, (B, C)) -&gt; ((B, C), JoinNode)、③ 条件分岐 (X, {&#x27;auto_book&#x27;: B, &#x27;needs_approval&#x27;: C})、④ 既定ルート {&#x27;approved&#x27;: B, DEFAULT_ROUTE: C}</p>
+    <p style="margin-bottom: 6px;">・Workflow(edges=[...]) の 4 パターン：</p>
+    <ol style="padding-left: 36px;">
+      <li>直列：<code>(A, B)</code></li>
+      <li>並列分岐・合流：<code>(A, (B, C)) -&gt; ((B, C), JoinNode)</code></li>
+      <li>条件分岐：<code>(X, {'auto_book': B, 'needs_approval': C})</code></li>
+      <li>既定ルート：<code>{'approved': B, DEFAULT_ROUTE: C}</code></li>
+    </ol>
     <p>step2_starter/agent.py は主要ノードと Workflow 定義だけをシンプルに整理してあります。Cloud Shell Editor で 2 箇所（83 行目の分岐 1 行と 141 行目からの Workflow エッジのコメント解除）を編集して完成させましょう（万一詰まった場合は完成版 step2_workflow_agent にそのまま切り替えられます）。</p>
     <h2>Step 2-2 編集箇所（2 箇所）</h2>
     <p>以下の 2 箇所を Cloud Shell Editor で編集して保存します（TODO 課題 2 はコメントアウトの # を外すだけでも OK です）。</p>
