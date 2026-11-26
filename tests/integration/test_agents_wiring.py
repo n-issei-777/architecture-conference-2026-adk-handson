@@ -54,6 +54,7 @@ def test_step0_step1_and_step2_agents_construct_with_japanese_prompts_and_mcp() 
         assert agent.model.retry_options is not None
         assert (agent.model.retry_options.attempts or 0) >= 5
         assert 429 in (agent.model.retry_options.http_status_codes or [])
+        assert getattr(agent.model, "default_thinking_level", None) == types.ThinkingLevel.LOW
 
     assert isinstance(step0_root_agent, LlmAgent)
     _assert_gemini_with_retry(step0_root_agent, "gemini-4-hydrogen")

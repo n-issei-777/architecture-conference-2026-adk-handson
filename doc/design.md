@@ -2,7 +2,7 @@
 
 ## 1. System Architecture Overview
 
-- **Models** (`GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_LOCATION=global`, Vertex AI ADC):
+- **Models** (`GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_LOCATION=global`, Vertex AI ADC, `thinking_level=LOW` via `gemini_model()` in `workflow_nodes.py` for low-latency workshop execution):
   - `gemini-4-hydrogen`: Step 0 and all Step 2 nodes (`step0_minimal_agent`, `intake_agent`, `search_agent`, `manager_approval_task`, `booking_agent`).
   - `gemini-3.8-flash`: Step 1 only (`step1_basic_agent`), chosen so the prompt-only guard bypass is easy to reproduce.
 - **Progressive 4-Step Learning Architecture**:

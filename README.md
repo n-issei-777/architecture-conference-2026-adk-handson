@@ -43,14 +43,14 @@ Python 3.13 と **Google Agent Development Kit (ADK) 2.0 (`v2.15.0`)**、およ�
 ├── step2_workflow_agent/                # Step 2 完成版 + Agent Runtime プレイグラウンド用アダプタ
 ├── eval/
 │   └── workcation_eval.json             # Step 3: 自動評価データセット
-└── tests/                               # 単体テスト・結合テスト (全 24 件)
+└── tests/                               # 単体テスト・結合テスト (全 28 件)
 ```
 
 ---
 
 ## 2. セットアップ (Cloud Shell / ローカル共通)
 
-本教材は API キーを使用せず、**Vertex AI Application Default Credentials (ADC)** と `global` エンドポイント上の `gemini-4-hydrogen` / `gemini-3.8-flash` を使用します。
+本教材は API キーを使用せず、**Vertex AI Application Default Credentials (ADC)** と `global` エンドポイント上の `gemini-4-hydrogen` / `gemini-3.8-flash`（既定 `thinking_level=LOW`）を使用します。
 
 ```bash
 export GOOGLE_CLOUD_PROJECT=$(gcloud config get-value project)
